@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>First Deployment Test</title>
+    <style>
+        body { font-family: Arial; text-align: center; margin-top: 50px; }
+        button { padding: 10px 20px; font-size: 16px; }
+        #result { margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <button onclick="testBackend()">Test Backend Connection</button>
+    <button onclick="testDB()">Test DB Connection</button>
+    <p id="result"></p>
+    
+    <script>
+        const BACKEND_URL = 'https://pingme-backend-nu.vercel.app';
+
+        async function testBackend() {
+            try {
+                const res = await fetch(`${BACKEND_URL}/test`);
+                const data = await res.json();
+                document.getElementById('result').textContent = data.message;
+            } catch (err) {
+                document.getElementById('result').textContent = 'Connection failed' + data.message;
+            }
+        }
+
+        async function testDB() {
+            try {
+                const res = await fetch(`${BACKEND_URL}/test/db`);
+                const data = await res.json();
+                document.getElementById('result').textContent = data.message;
+            } catch (err) {
+                document.getElementById('result').textContent = 'Connection failed' + data.message;
+            }
+        }
+        
+    </script>
+</body>
+</html>
