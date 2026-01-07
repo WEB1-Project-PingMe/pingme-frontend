@@ -125,11 +125,9 @@ function initAuth() {
         });
     }
     
-    const deleteBtn = document.getElementById('delete-account-btn');
+    const deleteBtn = document.getElementById("delete-account-btn");
     if (deleteBtn) {
-        document.addEventListener('DOMContentLoaded', function() {
-            deleteBtn.addEventListener('click', deleteAccount);
-        });
+        deleteBtn.addEventListener("click", deleteAccount);
     }
 }
 
