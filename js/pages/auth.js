@@ -1,4 +1,4 @@
-const BACKEND_URL = 'https://pingme-backend-nu.vercel.app';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:1350';
 
 async function createUser(user) {
     const res = await fetch(`${BACKEND_URL}/auth/register`, {

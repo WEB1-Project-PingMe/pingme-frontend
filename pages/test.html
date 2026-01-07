@@ -10,7 +10,7 @@
     <button onclick="testDB()">Test DB Connection</button>
     <p id="result"></p>
     <script>
-        const BACKEND_URL = 'https://pingme-backend-nu.vercel.app';
+        const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:1350';
 
         async function testBackend() {
             try {
