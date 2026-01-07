@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PingME Account</title>
+    <link rel="stylesheet" href="../../css/base.css">
+    <link rel="stylesheet" href="../../css/pages/auth.css">
+</head>
+<body class="accountBody">
+    <div class="container">
+        <h1>Delete Account</h1>
+        
+        <div class="warning">
+            <div class="warning-icon">⚠️</div>
+            <p><strong>This action cannot be undone!</strong></p>
+            <p>Deleting your account will permanently remove all your data and you won't be able to recover it.</p>
+        </div>
+
+        <p>Are you absolutely sure you want to continue?</p>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Deleting account...</p>
+        </div>
+
+        <button class="btn btn-danger" onclick="deleteAccount()">
+            Yes, Delete My Account
+        </button>
+        <a href="/" class="btn btn-secondary">Cancel</a>
+    </div>
+
+    <script src="auth.js"></script>
+</body>
+</html>

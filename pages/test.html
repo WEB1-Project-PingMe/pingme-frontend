@@ -16,9 +16,9 @@
             try {
                 const res = await fetch(`${BACKEND_URL}/test`);
                 const data = await res.json();
-                document.getElementById('result').textContent = data.message;
+                document.getElementById("result").textContent = data.message;
             } catch (err) {
-                document.getElementById('result').textContent = 'Connection failed' + data.message;
+                document.getElementById("result").textContent = "Connection failed" + data.message;
             }
         }
 
@@ -26,9 +26,9 @@
             try {
                 const res = await fetch(`${BACKEND_URL}/test/db`);
                 const data = await res.json();
-                document.getElementById('result').textContent = data.message;
+                document.getElementById("result").textContent = data.message;
             } catch (err) {
-                document.getElementById('result').textContent = 'Connection failed' + data.message;
+                document.getElementById("result").textContent = "Connection failed" + data.message;
             }
         }
         
