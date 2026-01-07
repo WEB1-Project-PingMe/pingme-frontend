@@ -1,7 +1,7 @@
 const BACKEND_URL = "https://pingme-backend-nu.vercel.app";
 
 function getToken() {
-    return localStorage.getItem('token') || sessionStorage.getItem('token');
+    return localStorage.getItem('sessionToken');
 }
 
 async function createUser(user) {
@@ -26,6 +26,11 @@ async function loginUser(user) {
         body: JSON.stringify(user)
     });
     const data = await res.json();
+
+    if (data.token) {
+        localStorage.setItem('sessionToken', data.token);
+    }
+
     return data;
 }
 
