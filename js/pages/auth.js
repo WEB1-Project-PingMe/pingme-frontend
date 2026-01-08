@@ -98,7 +98,7 @@ function initAuth() {
                 const result = await createUser(user);
                 console.log("User created:", result);
                 alert("Account created successfully!");
-                window.location.href = "login.html";
+                //window.location.href = "login.html";
             } catch (error) {
                 console.error("Error creating user:", error);
                 alert("There was a problem creating your account.");
@@ -122,7 +122,7 @@ function initAuth() {
                 console.log("User logged in:", result);
                 alert("Logged in successfully!");
                 // redirect to AccountPage?
-                window.location.href = "account.html";
+                // window.location.href = "account.html";
             } catch (error) {
                 console.error("Error logging in:", error);
                 alert("There was a problem logging in.");
