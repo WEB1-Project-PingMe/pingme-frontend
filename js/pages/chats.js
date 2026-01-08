@@ -4,10 +4,10 @@ async function apiCall(url, options = {}) {
     try {
         const token = localStorage.getItem("sessionToken");
         const response = await fetch(BACKEND_URL + url, {
-            headers: { 
-                "Content-Type": "application/json", 
+            headers: {
+                "Content-Type": "application/json",
                 ...(token && { "Authorization": `Bearer ${token}` }),
-                ...options.headers 
+                ...options.headers
             },
             ...options
         });
@@ -27,20 +27,20 @@ async function apiCall(url, options = {}) {
 }
 
 async function createConversation() {
-  const participantIds = JSON.parse(document.getElementById("participantIds").value || "[]");
+    const participantIds = JSON.parse(document.getElementById("participantIds").value || "[]");
 
-  const result = await apiCall("/conversations", {
-    method: "POST",
-    body: JSON.stringify({ participantIds })
-  });
-  
-  document.getElementById("createConvResult").textContent = 
-    result.ok ? JSON.stringify(result.data, null, 2) : `Error: ${result.error}`;
+    const result = await apiCall("/conversations", {
+        method: "POST",
+        body: JSON.stringify({ participantIds })
+    });
 
-  if (result.ok && result.data.conversationId) {
-    document.getElementById("convId").value = result.data.conversationId;
-    document.getElementById("convIdPost").value = result.data.conversationId;
-  }
+    document.getElementById("createConvResult").textContent =
+        result.ok ? JSON.stringify(result.data, null, 2) : `Error: ${result.error}`;
+
+    if (result.ok && result.data.conversationId) {
+        document.getElementById("convId").value = result.data.conversationId;
+        document.getElementById("convIdPost").value = result.data.conversationId;
+    }
 }
 
 
@@ -97,3 +97,157 @@ async function postGroupMessage() {
     document.getElementById("groupPostResult").textContent =
         result.ok ? JSON.stringify(result.data, null, 2) : `Error: ${result.error}`;
 }
+
+const currentUserId = localStorage.getItem("currentUserId");
+let currentConversationId = null;
+const conversations = new Map();
+const userCache = new Map();
+
+
+async function getUserName(userId) {
+    // Check cache first
+    if (this.userCache.has(userId)) {
+        return this.userCache.get(userId);
+    }
+
+    // API call to get user by ID
+    const result = await apiCall(`/users/${userId}`);
+
+    if (result.ok && result.data?.name) {
+        this.userCache.set(userId, result.data.name);
+        return result.data.name;
+    }
+
+    // Fallback
+    return `User ${userId.slice(-6)}`;
+}
+
+async function loadConversations() {
+    const result = await apiCall(`/conversations?userId=${this.currentUserId}`);
+
+    if (!result.ok || result.error) {
+        console.error("Error loading conversations:", result.error);
+        return;
+    }
+
+    const conversationsList = document.getElementById("conversations-list");
+    conversationsList.innerHTML = "";
+
+    // Load conversations with user names
+    for (const conv of result.data) {
+        this.conversations.set(conv._id, conv);
+
+        // Get other participant"s name via API
+        const otherParticipantId = conv.participantIds.find(id =>
+            id.toString() !== this.currentUserId.toString()
+        );
+        const participantName = await this.getUserName(otherParticipantId);
+
+        const div = document.createElement("div");
+        div.className = "conversation-item";
+        div.dataset.conversationId = conv._id;
+        div.innerHTML = `
+                <div class="participant-name">${participantName}</div>
+                <div class="last-message">${conv.lastMessage || "No messages yet"}</div>
+            `;
+        div.addEventListener("click", () => this.selectConversation(conv._id));
+        conversationsList.appendChild(div);
+    }
+}
+
+async function getParticipantName(conversation) {
+    const otherParticipantId = conversation.participantIds.find(id =>
+        id.toString() !== this.currentUserId.toString()
+    );
+    return await this.getUserName(otherParticipantId);
+}
+
+async function selectConversation(conversationId) {
+    this.currentConversationId = conversationId;
+
+    document.querySelectorAll(".conversation-item").forEach(item => {
+        item.classList.remove("active");
+    });
+    document.querySelector(`[data-conversation-id="${conversationId}"]`).classList.add("active");
+
+    await this.loadMessages(conversationId);
+
+    document.getElementById("message-input").disabled = false;
+    document.getElementById("send-button").disabled = false;
+
+    const conversation = this.conversations.get(conversationId);
+    const participantName = await this.getParticipantName(conversation);
+    document.getElementById("chat-header").innerHTML = `
+            <h3>Chat with ${participantName}</h3>
+        `;
+
+    this.scrollToBottom();
+}
+
+async function loadMessages(conversationId) {
+    const result = await apiCall(`/messages/${conversationId}`);
+
+    if (!result.ok || result.error) {
+        console.error("Error loading messages:", result.error);
+        return;
+    }
+
+    const container = document.getElementById("messages-container");
+    container.innerHTML = "";
+
+    result.data.forEach(msg => {
+        this.appendMessage(msg);
+    });
+}
+
+function appendMessage(message) {
+    const container = document.getElementById("messages-container");
+    const div = document.createElement("div");
+    div.className = `message ${message.senderId.toString() === this.currentUserId.toString() ? "sent" : "received"}`;
+
+    const time = new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    div.innerHTML = `
+            <div class="message-content">
+                ${message.text}
+                <div class="message-time">${time}</div>
+            </div>
+        `;
+    container.appendChild(div);
+    this.scrollToBottom();
+}
+
+async function sendMessage() {
+    const input = document.getElementById("message-input");
+    const text = input.value.trim();
+
+    if (!text || !this.currentConversationId) return;
+
+    const result = await apiCall("/messages", {
+        method: "POST",
+        body: JSON.stringify({
+            conversationId: this.currentConversationId,
+            senderId: this.currentUserId,
+            text: text
+        })
+    });
+
+    if (result.ok) {
+        input.value = "";
+        await this.loadMessages(this.currentConversationId);
+        await this.loadConversations();
+    }
+}
+
+function scrollToBottom() {
+    const container = document.getElementById("messages-container");
+    container.scrollTop = container.scrollHeight;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    loadConversations();
+    
+    document.getElementById("message-input").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendMessage();
+    });
+    document.getElementById("send-button").addEventListener("click", sendMessage);
+});

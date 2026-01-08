@@ -1,57 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PingME Chat Window</title>
+    <title>Messenger</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-
-    <div class="section">
-        <h3>POST /conversations</h3>
-        <textarea id="participantIds" placeholder='["507f1f77bcf86cd799439012", "507f1f77bcf86cd799439014"]' rows="3"
-            cols="50">["507f1f77bcf86cd799439012", "507f1f77bcf86cd799439014"]</textarea>
-        <button onclick="createConversation()">Create Conversation</button>
-        <pre id="createConvResult"></pre>
+    <div class="container">
+        <div class="chat-container">
+            <div class="conversations-panel">
+                <h3>Your Chats</h3>
+                <div id="conversations-list" class="conversations-list">
+                    <!-- Conversations will load here -->
+                </div>
+            </div>
+            <div class="messages-panel">
+                <div id="chat-header" class="chat-header">
+                    <h3>Select a conversation</h3>
+                </div>
+                <div id="messages-container" class="messages-container">
+                    <!-- Messages will load here -->
+                </div>
+                <div class="message-input-container">
+                    <input type="text" id="message-input" placeholder="Type a message..." disabled>
+                    <button id="send-button" disabled>Send</button>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="section">
-        <h3>GET /conversations/messages</h3>
-        <input id="convId" placeholder="conversationId" value="507f1f77bcf86cd799439011">
-        <input id="convLimit" placeholder="limit" value="20" size="5">
-        <input id="convBefore" placeholder="before (ISO timestamp)" size="25">
-        <button onclick="getConversationMessages()">Get Messages</button>
-        <pre id="convMessages"></pre>
-    </div>
-    <div class="section">
-        <h3>POST /conversations/messages</h3>
-        <input id="convIdPost" placeholder="conversationId" value="507f1f77bcf86cd799439011">
-        <input id="senderIdPost" placeholder="senderId" value="507f1f77bcf86cd799439012">
-        <textarea id="convText" placeholder="Message text">Hello from HTML tester!</textarea>
-        <button onclick="postConversationMessage()">Send Message</button>
-        <pre id="convPostResult"></pre>
-    </div>
-
-    <div class="section">
-        <h3>GET /groups/{groupId}/messages</h3>
-        <input id="groupId" placeholder="groupId" value="507f1f77bcf86cd799439013">
-        <input id="groupLimit" placeholder="limit" value="20" size="5">
-        <input id="groupBefore" placeholder="before (ISO timestamp)" size="25">
-        <button onclick="getGroupMessages()">Get Messages</button>
-        <pre id="groupMessages"></pre>
-    </div>
-
-    <div class="section">
-        <h3>POST /groups/{groupId}/messages</h3>
-        <input id="groupIdPost" placeholder="groupId" value="507f1f77bcf86cd799439013">
-        <input id="groupSenderId" placeholder="senderId" value="507f1f77bcf86cd799439012">
-        <textarea id="groupText" placeholder="Message text">Hello group from HTML!</textarea>
-        <button onclick="postGroupMessage()">Send Message</button>
-        <pre id="groupPostResult"></pre>
-    </div>
-
-    <script src="../../js/pages/chats.js"></script>
+    <script src="script.js"></script>
 </body>
-
 </html>
