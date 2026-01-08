@@ -2,13 +2,26 @@ const BACKEND_URL = "https://pingme-backend-nu.vercel.app";
 
 async function apiCall(url, options = {}) {
     try {
+        const token = localStorage.getItem("sessionToken");
         const response = await fetch(BACKEND_URL + url, {
-            headers: { "Content-Type": "application/json", ...options.headers },
+            headers: { 
+                "Content-Type": "application/json", 
+                ...(token && { "Authorization": `Bearer ${token}` }),
+                ...options.headers 
+            },
             ...options
         });
+
+        if (response.status === 401) {
+            localStorage.removeItem("sessionToken");
+            window.location.href = "/login";
+            throw new Error("Session expired");
+        }
+
         const data = await response.json();
         return { response, data, ok: response.ok };
     } catch (error) {
+        console.error("API call failed:", error);
         return { error: error.message };
     }
 }

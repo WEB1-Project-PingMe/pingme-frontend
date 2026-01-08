@@ -1,7 +1,7 @@
 const BACKEND_URL = "https://pingme-backend-nu.vercel.app";
 
 function getToken() {
-    return localStorage.getItem('sessionToken');
+    return localStorage.getItem("sessionToken");
 }
 
 async function createUser(user) {
@@ -28,7 +28,7 @@ async function loginUser(user) {
     const data = await res.json();
 
     if (data.token) {
-        localStorage.setItem('sessionToken', data.token);
+        localStorage.setItem("sessionToken", data.token);
     }
 
     return data;
@@ -37,48 +37,48 @@ async function loginUser(user) {
 async function deleteAccount() {
     const token = getToken();
     if (!token) {
-        alert('Please log in first');
+        alert("Please log in first");
         return;
     }
 
     // Show loading (if delete page has loading element)
-    const loadingEl = document.getElementById('loading');
-    const deleteBtn = document.querySelector('.btn-danger');
+    const loadingEl = document.getElementById("loading");
+    const deleteBtn = document.querySelector(".btn-danger");
     
-    if (loadingEl) loadingEl.style.display = 'block';
-    if (deleteBtn) deleteBtn.style.display = 'none';
+    if (loadingEl) loadingEl.style.display = "block";
+    if (deleteBtn) deleteBtn.style.display = "none";
 
     try {
         const response = await fetch(`${BACKEND_URL}/auth/account`, {
-            method: 'DELETE',
+            method: "DELETE",
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
             },
             body: JSON.stringify({ sessionToken: token })
         });
 
         const data = await response.json();
 
-        if (response.ok && data.message === 'deleted successfully') {
+        if (response.ok && data.message === "deleted successfully") {
             // Clear token and redirect
-            localStorage.removeItem('token');
-            sessionStorage.removeItem('token');
-            alert('Account deleted successfully. Goodbye!');
-            window.location.href = '/';
+            localStorage.removeItem("token");
+            sessionStorage.removeItem("token");
+            alert("Account deleted successfully. Goodbye!");
+            window.location.href = "/";
         } else if (data.message === "user doesn't exist") {
-            alert('User not found');
-            window.location.href = '/';
+            alert("User not found");
+            window.location.href = "/";
         } else {
-            throw new Error(data.error || 'Delete failed');
+            throw new Error(data.error || "Delete failed");
         }
     } catch (error) {
-        console.error('Delete error:', error);
-        alert('Error deleting account: ' + error.message);
+        console.error("Delete error:", error);
+        alert("Error deleting account: " + error.message);
     } finally {
         // Hide loading
-        if (loadingEl) loadingEl.style.display = 'none';
-        if (deleteBtn) deleteBtn.style.display = 'inline-block';
+        if (loadingEl) loadingEl.style.display = "none";
+        if (deleteBtn) deleteBtn.style.display = "inline-block";
     }
 }
 
