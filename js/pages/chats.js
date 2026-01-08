@@ -1,5 +1,5 @@
 const BACKEND_URL = "https://pingme-backend-nu.vercel.app";
-const currentUserId = localStorage.getItem("currentUserId");
+const currentUserID = localStorage.getItem("currentUserID");
 let currentConversationId = null;
 const conversations = new Map();
 const userCache = new Map();
@@ -121,7 +121,7 @@ async function getUserName(userId) {
 }
 
 async function loadConversations() {
-    const result = await apiCall(`/conversations?userId=${currentUserId}`);
+    const result = await apiCall(`/conversations?userId=${currentUserID}`);
 
     if (!result.ok || result.error) {
         console.error("Error loading conversations:", result.error);
@@ -137,7 +137,7 @@ async function loadConversations() {
 
         // Get other participant"s name via API
         const otherParticipantId = conv.participantIds.find(id =>
-            id.toString() !== currentUserId.toString()
+            id.toString() !== currentUserID.toString()
         );
         const participantName = await getUserName(otherParticipantId);
 
@@ -155,7 +155,7 @@ async function loadConversations() {
 
 async function getParticipantName(conversation) {
     const otherParticipantId = conversation.participantIds.find(id =>
-        id.toString() !== currentUserId.toString()
+        id.toString() !== currentUserID.toString()
     );
     return await getUserName(otherParticipantId);
 }
@@ -201,7 +201,7 @@ async function loadMessages(conversationId) {
 function appendMessage(message) {
     const container = document.getElementById("messages-container");
     const div = document.createElement("div");
-    div.className = `message ${message.senderId.toString() === currentUserId.toString() ? "sent" : "received"}`;
+    div.className = `message ${message.senderId.toString() === currentUserID.toString() ? "sent" : "received"}`;
 
     const time = new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     div.innerHTML = `
@@ -224,7 +224,7 @@ async function sendMessage() {
         method: "POST",
         body: JSON.stringify({
             conversationId: currentConversationId,
-            senderId: currentUserId,
+            senderId: currentUserID,
             text: text
         })
     });
