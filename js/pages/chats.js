@@ -121,7 +121,8 @@ async function getUserName(userId) {
 }
 
 async function loadConversations() {
-    const result = await apiCall(`/conversations?userId=${currentUserID}`);
+    // const result = await apiCall(`/conversations?userId=${currentUserID}`);
+    const result = await apiCall("/conversations");
 
     if (!result.ok || result.error) {
         console.error("Error loading conversations:", result.error);
