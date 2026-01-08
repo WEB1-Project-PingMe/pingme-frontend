@@ -133,7 +133,7 @@ async function loadConversations() {
     conversationsList.innerHTML = "";
 
     // Load conversations with user names
-    for (const conv of result.data) {
+    for (const conv of result.data.conversations) {
         conversations.set(conv._id, conv);
 
         // Get other participant"s name via API
@@ -194,7 +194,7 @@ async function loadMessages(conversationId) {
     const container = document.getElementById("messages-container");
     container.innerHTML = "";
 
-    result.data.forEach(msg => {
+    result.messages.forEach(msg => {
         appendMessage(msg);
     });
 }
