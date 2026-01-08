@@ -137,10 +137,10 @@ async function loadConversations() {
         conversations.set(conv._id, conv);
 
         // Get other participant"s name via API
-        const otherParticipantId = conv.participantIds.find(id =>
-            id.toString() !== currentUserID.toString()
+        const otherParticipant = conv.participantIds.find(p =>
+            p._id.toString() !== currentUserID.toString()
         );
-        const participantName = await getUserName(otherParticipantId);
+        const participantName = otherParticipant ? otherParticipant.name : "Unknown";;
 
         const div = document.createElement("div");
         div.className = "conversation-item";
@@ -244,7 +244,7 @@ function scrollToBottom() {
 
 document.addEventListener("DOMContentLoaded", () => {
     loadConversations();
-    
+
     document.getElementById("message-input").addEventListener("keypress", (e) => {
         if (e.key === "Enter") sendMessage();
     });
