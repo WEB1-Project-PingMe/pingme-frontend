@@ -1,16 +1,69 @@
-body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f4f4f4; }
-form { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 300px; }
-label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
-input { width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-button { width: 100%; padding: 0.75rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
-button:hover { background: #218838; }
-.link { text-align: center; margin-top: 1rem; }
-.link a { color: #007bff; text-decoration: none; }
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background: #f4f4f4;
+}
+
+form {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    width: 300px;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+}
+
+input {
+    width: 100%;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+button {
+    width: 100%;
+    padding: 0.75rem;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #218838;
+}
+
+.link {
+    text-align: center;
+    margin-top: 1rem;
+}
+
+.link a {
+    color: #007bff;
+    text-decoration: none;
+}
 
 
 /* ACCOUNT PAGE */
-* { margin: 0; padding: 0; box-sizing: border-box; }
-.accountBody { 
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.accountBody {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
@@ -18,21 +71,24 @@ button:hover { background: #218838; }
     align-items: center;
     justify-content: center;
 }
-.container { 
+
+.container {
     background: white;
     padding: 2rem;
     border-radius: 16px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
     max-width: 400px;
     width: 90%;
     text-align: center;
 }
-h1 { 
+
+h1 {
     color: #333;
     margin-bottom: 1rem;
     font-size: 1.8rem;
 }
-.warning { 
+
+.warning {
     background: #fee;
     border: 2px solid #fcc;
     border-radius: 12px;
@@ -40,15 +96,18 @@ h1 {
     margin: 1.5rem 0;
     color: #c33;
 }
+
 .warning-icon {
     font-size: 3rem;
     margin-bottom: 1rem;
 }
-p { 
+
+p {
     color: #666;
     line-height: 1.6;
     margin-bottom: 1.5rem;
 }
+
 .btn {
     padding: 12px 32px;
     border: none;
@@ -60,26 +119,32 @@ p {
     display: inline-block;
     transition: all 0.2s;
 }
-.btn-danger { 
+
+.btn-danger {
     background: #dc3545;
     color: white;
 }
-.btn-danger:hover { 
+
+.btn-danger:hover {
     background: #c82333;
     transform: translateY(-1px);
 }
-.btn-secondary { 
+
+.btn-secondary {
     background: #6c757d;
     color: white;
     margin-left: 1rem;
 }
-.btn-secondary:hover { 
+
+.btn-secondary:hover {
     background: #545b62;
 }
+
 .loading {
     display: none;
     margin: 1rem 0;
 }
+
 .spinner {
     border: 2px solid #f3f3f3;
     border-top: 2px solid #dc3545;
@@ -89,7 +154,13 @@ p {
     animation: spin 1s linear infinite;
     margin: 0 auto 1rem;
 }
+
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
