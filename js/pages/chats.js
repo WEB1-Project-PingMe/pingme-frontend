@@ -1,4 +1,8 @@
 const BACKEND_URL = "https://pingme-backend-nu.vercel.app";
+const currentUserId = localStorage.getItem("currentUserId");
+let currentConversationId = null;
+const conversations = new Map();
+const userCache = new Map();
 
 async function apiCall(url, options = {}) {
     try {
@@ -98,23 +102,17 @@ async function postGroupMessage() {
         result.ok ? JSON.stringify(result.data, null, 2) : `Error: ${result.error}`;
 }
 
-const currentUserId = localStorage.getItem("currentUserId");
-let currentConversationId = null;
-const conversations = new Map();
-const userCache = new Map();
-
-
 async function getUserName(userId) {
     // Check cache first
-    if (this.userCache.has(userId)) {
-        return this.userCache.get(userId);
+    if (userCache.has(userId)) {
+        return userCache.get(userId);
     }
 
     // API call to get user by ID
     const result = await apiCall(`/users/${userId}`);
 
     if (result.ok && result.data?.name) {
-        this.userCache.set(userId, result.data.name);
+        userCache.set(userId, result.data.name);
         return result.data.name;
     }
 
@@ -123,7 +121,7 @@ async function getUserName(userId) {
 }
 
 async function loadConversations() {
-    const result = await apiCall(`/conversations?userId=${this.currentUserId}`);
+    const result = await apiCall(`/conversations?userId=${currentUserId}`);
 
     if (!result.ok || result.error) {
         console.error("Error loading conversations:", result.error);
@@ -135,13 +133,13 @@ async function loadConversations() {
 
     // Load conversations with user names
     for (const conv of result.data) {
-        this.conversations.set(conv._id, conv);
+        conversations.set(conv._id, conv);
 
         // Get other participant"s name via API
         const otherParticipantId = conv.participantIds.find(id =>
-            id.toString() !== this.currentUserId.toString()
+            id.toString() !== currentUserId.toString()
         );
-        const participantName = await this.getUserName(otherParticipantId);
+        const participantName = await getUserName(otherParticipantId);
 
         const div = document.createElement("div");
         div.className = "conversation-item";
@@ -150,38 +148,38 @@ async function loadConversations() {
                 <div class="participant-name">${participantName}</div>
                 <div class="last-message">${conv.lastMessage || "No messages yet"}</div>
             `;
-        div.addEventListener("click", () => this.selectConversation(conv._id));
+        div.addEventListener("click", () => selectConversation(conv._id));
         conversationsList.appendChild(div);
     }
 }
 
 async function getParticipantName(conversation) {
     const otherParticipantId = conversation.participantIds.find(id =>
-        id.toString() !== this.currentUserId.toString()
+        id.toString() !== currentUserId.toString()
     );
-    return await this.getUserName(otherParticipantId);
+    return await getUserName(otherParticipantId);
 }
 
 async function selectConversation(conversationId) {
-    this.currentConversationId = conversationId;
+    currentConversationId = conversationId;
 
     document.querySelectorAll(".conversation-item").forEach(item => {
         item.classList.remove("active");
     });
     document.querySelector(`[data-conversation-id="${conversationId}"]`).classList.add("active");
 
-    await this.loadMessages(conversationId);
+    await loadMessages(conversationId);
 
     document.getElementById("message-input").disabled = false;
     document.getElementById("send-button").disabled = false;
 
-    const conversation = this.conversations.get(conversationId);
-    const participantName = await this.getParticipantName(conversation);
+    const conversation = conversations.get(conversationId);
+    const participantName = await getParticipantName(conversation);
     document.getElementById("chat-header").innerHTML = `
             <h3>Chat with ${participantName}</h3>
         `;
 
-    this.scrollToBottom();
+    scrollToBottom();
 }
 
 async function loadMessages(conversationId) {
@@ -196,14 +194,14 @@ async function loadMessages(conversationId) {
     container.innerHTML = "";
 
     result.data.forEach(msg => {
-        this.appendMessage(msg);
+        appendMessage(msg);
     });
 }
 
 function appendMessage(message) {
     const container = document.getElementById("messages-container");
     const div = document.createElement("div");
-    div.className = `message ${message.senderId.toString() === this.currentUserId.toString() ? "sent" : "received"}`;
+    div.className = `message ${message.senderId.toString() === currentUserId.toString() ? "sent" : "received"}`;
 
     const time = new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     div.innerHTML = `
@@ -213,28 +211,28 @@ function appendMessage(message) {
             </div>
         `;
     container.appendChild(div);
-    this.scrollToBottom();
+    scrollToBottom();
 }
 
 async function sendMessage() {
     const input = document.getElementById("message-input");
     const text = input.value.trim();
 
-    if (!text || !this.currentConversationId) return;
+    if (!text || !currentConversationId) return;
 
     const result = await apiCall("/messages", {
         method: "POST",
         body: JSON.stringify({
-            conversationId: this.currentConversationId,
-            senderId: this.currentUserId,
+            conversationId: currentConversationId,
+            senderId: currentUserId,
             text: text
         })
     });
 
     if (result.ok) {
         input.value = "";
-        await this.loadMessages(this.currentConversationId);
-        await this.loadConversations();
+        await loadMessages(currentConversationId);
+        await loadConversations();
     }
 }
 
