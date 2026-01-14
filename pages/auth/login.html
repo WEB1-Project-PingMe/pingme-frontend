@@ -1,29 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PingME Login</title>
     <link rel="stylesheet" href="../../css/base.css">
     <link rel="stylesheet" href="../../css/pages/auth.css">
-</head>
-<body>
-    <form id="loginForm">
-        <h2>Login to Account</h2>
+  </head>
+  <body>
+    <main>
+      <form id="loginForm">
+        <h1>Login to Account</h1>
 
-        <label for="email">Email:</label>
-        <input type="email" id="email" name="email" required>
-        
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required minlength="6">
-        
-        <button type="submit">Login</button>
-        
-        <div class="link">
-            Don't have an account? <a href="register.html">Register here</a>
-        </div>
-    </form>
+        <p>
+        <input type="email" id="email" name="email" placeholder="Email" required>
+        </p>
+
+        <p class="password-field">
+        <input type="password" id="password" name="password" placeholder="Password" required minlength="6">
+        <button type="button" id="togglePassword">
+          <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fill-rule="evenodd" clip-rule="evenodd" d="M0 8L3.07945 4.30466C4.29638 2.84434 6.09909 2 8 2C9.90091 2 11.7036 2.84434 12.9206 4.30466L16 8L12.9206 11.6953C11.7036 13.1557 9.90091 14 8 14C6.09909 14 4.29638 13.1557 3.07945 11.6953L0 8ZM8 11C9.65685 11 11 9.65685 11 8C11 6.34315 9.65685 5 8 5C6.34315 5 5 6.34315 5 8C5 9.65685 6.34315 11 8 11Z"></path> </g></svg>
+        </button>
+        </p>
+
+        <button type="submit" class="login-btn default-btn">Login</button>
+      </form>
+
+      <p class="create-account-link">
+        Don't have an account? <a href="register.html" class="link">Register here</a>
+      </p>
+    </main>
 
     <script src="../../js/pages/auth.js"></script>
-</body>
+  </body>
 </html>
