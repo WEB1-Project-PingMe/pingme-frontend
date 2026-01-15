@@ -1,16 +1,16 @@
 import './App.css'
-import { SidebarProvider } from '@/components/ui/sidebar'
-import { AppSidebar } from './components/app-sidebar'
-import { ThemeProvider } from './components/theme-provider'
+import ChatLayoutGrid from './components/chat-layout'
+import { ThemeProvider } from './components/theme-provider' 
+import { BrowserRouter } from 'react-router'
 
 function App() {
 
   return (
-    <ThemeProvider>
-      <SidebarProvider>
-        <AppSidebar />
-      </SidebarProvider>
-    </ThemeProvider>
+    <BrowserRouter>
+      <ThemeProvider>
+        <ChatLayoutGrid />
+      </ThemeProvider>
+    </BrowserRouter>
   )
 }
 
