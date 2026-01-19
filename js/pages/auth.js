@@ -1,140 +1,161 @@
 const BACKEND_URL = "https://pingme-backend-nu.vercel.app";
 
+// better to wait for the DOM to load
+document.addEventListener('DOMContentLoaded', () => {
+  initAuth();
+  const togglePassword = document.getElementById('togglePassword');
+  const passwordField = document.getElementById('password');
+  const icon = togglePassword.querySelector('svg');
+
+  togglePassword.addEventListener('click', () => {
+    const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+    passwordField.setAttribute('type', type);
+    // toggle icon (simple eye open/close)
+    if (type === 'text') {
+      icon.innerHTML = '<g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fill-rule="evenodd" clip-rule="evenodd" d="M16 16H13L10.8368 13.3376C9.96488 13.7682 8.99592 14 8 14C6.09909 14 4.29638 13.1557 3.07945 11.6953L0 8L3.07945 4.30466C3.14989 4.22013 3.22229 4.13767 3.29656 4.05731L0 0H3L16 16ZM5.35254 6.58774C5.12755 7.00862 5 7.48941 5 8C5 9.65685 6.34315 11 8 11C8.29178 11 8.57383 10.9583 8.84053 10.8807L5.35254 6.58774Z" ></path> <path d="M16 8L14.2278 10.1266L7.63351 2.01048C7.75518 2.00351 7.87739 2 8 2C9.90091 2 11.7036 2.84434 12.9206 4.30466L16 8Z" ></path> </g>';
+    } else {
+      icon.innerHTML = '<g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fill-rule="evenodd" clip-rule="evenodd" d="M0 8L3.07945 4.30466C4.29638 2.84434 6.09909 2 8 2C9.90091 2 11.7036 2.84434 12.9206 4.30466L16 8L12.9206 11.6953C11.7036 13.1557 9.90091 14 8 14C6.09909 14 4.29638 13.1557 3.07945 11.6953L0 8ZM8 11C9.65685 11 11 9.65685 11 8C11 6.34315 9.65685 5 8 5C6.34315 5 5 6.34315 5 8C5 9.65685 6.34315 11 8 11Z"></path> </g>';
+    }
+  });
+});
+
 function getToken() {
-    return localStorage.getItem("sessionToken");
+  return localStorage.getItem("sessionToken");
 }
 
 async function createUser(user) {
-    const res = await fetch(`${BACKEND_URL}/auth/register`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(user)
-    });
+  const res = await fetch(`${BACKEND_URL}/auth/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(user)
+  });
 
-    const data = await res.json();
-    return data;
+  const data = await res.json();
+  return data;
 }
 
 async function loginUser(user) {
-    const res = await fetch(`${BACKEND_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(user)
-    });
-    const data = await res.json();
+  const res = await fetch(`${BACKEND_URL}/auth/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(user)
+  });
+  const data = await res.json();
 
-    if (data.token && data.user._id) {
-        localStorage.setItem("sessionToken", data.token);
-        localStorage.setItem("currentUserID", data.user._id);
-    }
+  if (data.token && data.user._id) {
+    localStorage.setItem("sessionToken", data.token);
+    localStorage.setItem("currentUserID", data.user._id);
+  }
 
-    return data;
+  return data;
 }
 
 async function deleteAccount() {
-    const token = getToken();
-    if (!token) {
-        alert("Please log in first");
-        return;
+  const token = getToken();
+  if (!token) {
+    alert("Please log in first");
+    return;
+  }
+
+  // Show loading (if delete page has loading element)
+  const loadingEl = document.getElementById("loading");
+  const deleteBtn = document.querySelector(".btn-danger");
+
+  if (loadingEl) loadingEl.style.display = "block";
+  if (deleteBtn) deleteBtn.style.display = "none";
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/auth/account`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({ sessionToken: token })
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.message === "deleted successfully") {
+      // Clear token and redirect
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("token");
+      alert("Account deleted successfully. Goodbye!");
+      window.location.href = "/";
+    } else if (data.message === "user doesn't exist") {
+      alert("User not found");
+      window.location.href = "/";
+    } else {
+      throw new Error(data.error || "Delete failed");
     }
-
-    // Show loading (if delete page has loading element)
-    const loadingEl = document.getElementById("loading");
-    const deleteBtn = document.querySelector(".btn-danger");
-    
-    if (loadingEl) loadingEl.style.display = "block";
-    if (deleteBtn) deleteBtn.style.display = "none";
-
-    try {
-        const response = await fetch(`${BACKEND_URL}/auth/account`, {
-            method: "DELETE",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
-            },
-            body: JSON.stringify({ sessionToken: token })
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.message === "deleted successfully") {
-            // Clear token and redirect
-            localStorage.removeItem("token");
-            sessionStorage.removeItem("token");
-            alert("Account deleted successfully. Goodbye!");
-            window.location.href = "/";
-        } else if (data.message === "user doesn't exist") {
-            alert("User not found");
-            window.location.href = "/";
-        } else {
-            throw new Error(data.error || "Delete failed");
-        }
-    } catch (error) {
-        console.error("Delete error:", error);
-        alert("Error deleting account: " + error.message);
-    } finally {
-        // Hide loading
-        if (loadingEl) loadingEl.style.display = "none";
-        if (deleteBtn) deleteBtn.style.display = "inline-block";
-    }
+  } catch (error) {
+    console.error("Delete error:", error);
+    alert("Error deleting account: " + error.message);
+  } finally {
+    // Hide loading
+    if (loadingEl) loadingEl.style.display = "none";
+    if (deleteBtn) deleteBtn.style.display = "inline-block";
+  }
 }
 
 function initAuth() {
-    const registerForm = document.getElementById("registerForm");
-    if (registerForm) {
-        registerForm.addEventListener("submit", async (event) => {
-            event.preventDefault();
-            
-            const user = {
-                name: document.getElementById("username").value,
-                email: document.getElementById("email").value,
-                password: document.getElementById("password").value
-            };
+  const registerForm = document.getElementById("registerForm");
+  if (registerForm) {
+    registerForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
 
-            try {
-                const result = await createUser(user);
-                console.log("User created:", result);
-                alert("Account created successfully!");
-                //window.location.href = "login.html";
-            } catch (error) {
-                console.error("Error creating user:", error);
-                alert("There was a problem creating your account.");
-            }
-        });
-        return;
-    }
+      const user = {
+        name: document.getElementById("username").value,
+        email: document.getElementById("email").value,
+        password: document.getElementById("password").value
+      };
 
-    const loginForm = document.getElementById("loginForm");
-    if (loginForm) {
-        loginForm.addEventListener("submit", async (event) => {
-            event.preventDefault();
-            
-            const user = {
-                email: document.getElementById("email").value,
-                password: document.getElementById("password").value
-            };
+      try {
+        const result = await createUser(user);
+        console.log("User created:", result);
+        alert("Account created successfully!");
+        //window.location.href = "login.html";
+      } catch (error) {
+        console.error("Error creating user:", error);
+        alert("There was a problem creating your account.");
+      }
+    });
+    return;
+  }
 
-            try {
-                const result = await loginUser(user);
-                console.log("User logged in:", result);
-                alert("Logged in successfully!");
-                // redirect to AccountPage?
-                // window.location.href = "account.html";
-            } catch (error) {
-                console.error("Error logging in:", error);
-                alert("There was a problem logging in.");
-            }
-        });
-    }
-    
-    const deleteBtn = document.getElementById("delete-account-btn");
-    if (deleteBtn) {
-        deleteBtn.addEventListener("click", deleteAccount);
-    }
+  const loginForm = document.getElementById("loginForm");
+  if (loginForm) {
+    loginForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const user = {
+        email: document.getElementById("email").value,
+        password: document.getElementById("password").value
+      };
+
+      try {
+        const result = await loginUser(user);
+        console.log("User logged in:", result);
+        if (result.error) {
+          alert("Login failed: " + result.error);
+          return;
+        }
+        alert("Logged in successfully!");
+        // redirect to AccountPage?
+        // window.location.href = "account.html";
+      } catch (error) {
+        console.error("Error logging in:", error);
+        alert("There was a problem logging in.");
+      }
+    });
+  }
+
+  const deleteBtn = document.getElementById("delete-account-btn");
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", deleteAccount);
+  }
 }
-
-document.addEventListener("DOMContentLoaded", initAuth);
