@@ -48,7 +48,7 @@ async function loginUser(user) {
 
   if (data.token && data.user._id) {
     localStorage.setItem("sessionToken", data.token);
-    localStorage.setItem("currentUserID", data.user._id);
+    localStorage.setItem("currentUserId", data.user._id);
   }
 
   return data;
