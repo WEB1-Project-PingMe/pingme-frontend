@@ -19,15 +19,16 @@ let users = [];
 let chats = [];
 let currentChatId = null;
 let db;
-let isDbInitialized = false;
+let pusher = new Pusher('d8e5b208992682efa26f', {
+    cluster: 'eu'
+});
 
 const DB_NAME = "PingMeDB";
 const messagesStoreName = "messages";
 const chatsStoreName = "chats";
-
 const currentUserId = localStorage.getItem("currentUserId");
-
 const BACKEND_URL = "https://pingme-backend-nu.vercel.app";
+
 async function apiCall(url, options = {}) {
     try {
         const token = localStorage.getItem("sessionToken");
@@ -61,21 +62,7 @@ async function initDB() {
         request.onerror = () => reject(request.error);
         request.onsuccess = async () => {
             db = request.result;
-            // Check if DB is empty (first time initialization)
-            const chatsTx = db.transaction([chatsStoreName], "readonly");
-            const chatsStore = chatsTx.objectStore(chatsStoreName);
-            const chatsCountRequest = chatsStore.count();
-
-            chatsCountRequest.onsuccess = async () => {
-                const messagesTx = db.transaction([messagesStoreName], "readonly");
-                const messagesStore = messagesTx.objectStore(messagesStoreName);
-                const messagesCountRequest = messagesStore.count();
-
-                messagesCountRequest.onsuccess = () => {
-                    isDbInitialized = chatsCountRequest.result > 0 || messagesCountRequest.result > 0;
-                    resolve(db);
-                };
-            };
+            resolve(db);
         };
 
         request.onupgradeneeded = (e) => {
@@ -89,27 +76,55 @@ async function initDB() {
             if (!db.objectStoreNames.contains(messagesStoreName)) {
                 const messagesStore = db.createObjectStore(messagesStoreName, { keyPath: "id" });
                 messagesStore.createIndex("chatId", "chatId", { unique: false });
-                // messagesStore.createIndex("name", "name", { unique: false });
             }
         };
     });
 }
 
-async function populateFromRemote() {
+async function syncLocalWithBackend() {
+    // Get all conversations from backend
     await getConversations();
-    await loadChats();
-    for (const chat of chats) {
-        await getMessages(chat.id, 50);
+
+    await clearLocalData();
+
+    if (chats.length > 0) {
+        for (const chat of chats) {
+            await getMessages(chat.id, 1000);
+        }
     }
+
+    renderChatList();
+    if (currentChatId) {
+        loadAndRenderMessages();
+    }
+    subscribeToChannels();
+}
+
+async function clearLocalData() {
+    // Clear chats
+    await new Promise((resolve) => {
+        const tx = db.transaction([chatsStoreName], "readwrite");
+        const store = tx.objectStore(chatsStoreName);
+        store.clear();
+        tx.oncomplete = resolve;
+        tx.onerror = () => console.error("Clear chats failed");
+    });
+    
+    // Clear messages
+    await new Promise((resolve) => {
+        const tx = db.transaction([messagesStoreName], "readwrite");
+        const store = tx.objectStore(messagesStoreName);
+        store.clear();
+        tx.oncomplete = resolve;
+        tx.onerror = () => console.error("Clear messages failed");
+    });
 }
 
 async function getConversations() {
     const result = await apiCall("/conversations");
     if (result.ok && result.data.success) {
-        // TODO: change to converstations when groups is implemented
         chats = result.data.conversations.map(conv => ({
             id: conv._id,
-            // TODO: Change to Contact Name
             name: conv.participants[0]?.name || conv.participants[0]?.userTag || "Unknown Chat",
             timestamp: conv.lastMessageAt || conv.updatedAt,
             lastMessageText: conv.lastMessageText,
@@ -133,14 +148,6 @@ async function getMessages(conversationId, limit = 50, before = null) {
     return [];
 }
 
-async function createConversation(participantId) {
-    const result = await apiCall("/conversations", {
-        method: "POST",
-        body: JSON.stringify({ participantId })
-    });
-    return result.ok ? result.data.conversationId : null;
-}
-
 async function sendMessageToRemote(conversationId, text) {
     const senderId = localStorage.getItem("currentUserId");
     const result = await apiCall("/conversations/messages", {
@@ -156,13 +163,19 @@ function storeChats() {
     chats.forEach(chat => store.put(chat));
 }
 
+function storeMessagesForChat(chatId, messages) {
+    const tx = db.transaction([messagesStoreName], "readwrite");
+    const store = tx.objectStore(messagesStoreName);
+
+    messages.forEach(msg => {
+        msg.id = msg._id;
+        const messageData = { ...msg, chatId };
+        store.put(messageData);
+    });
+}
+
 function loadChats() {
     return new Promise(resolve => {
-        if (!isDbInitialized) {
-            resolve();
-            return;
-        }
-
         const tx = db.transaction([chatsStoreName]);
         const store = tx.objectStore(chatsStoreName);
         const request = store.getAll();
@@ -177,8 +190,8 @@ function loadChats() {
 function renderChatList() {
     chatListElement.innerHTML = chats.map(chat => {
         const lastMsgTime = chat.timestamp;
-        const timeStr = lastMsgTime ? new Date(lastMsgTime).toLocaleDateString([], {
-            month: "short", day: "numeric"
+        const timeStr = lastMsgTime ? new Date(lastMsgTime).toLocaleTimeString([], {
+            hour: "2-digit", minute: "2-digit", hour12: false
         }) : "Never";
 
         return `
@@ -186,7 +199,7 @@ function renderChatList() {
                 <div class="chat-avatar">${chat.name.charAt(0).toUpperCase()}</div>
                 <div class="chat-preview">
                     <div class="chat-name">${chat.name}</div>
-                    <div class="chat-last-message">${chat.lastMessageText || timeStr}</div>
+                    <div class="chat-last-message">${timeStr}: ${chat.lastMessageText || ''}</div>
                 </div>
             </div>
         `;
@@ -197,10 +210,18 @@ function renderChatList() {
     });
 }
 
-async function loadMessagesForChat(chatId) {
-    const remoteMessages = await getMessages(chatId, 50);
-    if (remoteMessages.length > 0) return remoteMessages;
+function updateChatLastMessage(chat) {
+    const time = formatTime(chat.lastMessageAt || Date.now());
+    const item = document.querySelector(`.chat-item[data-chat-id="${chat.id}"]`);
+    if (!item) return;
 
+    const lastMsgNode = item.querySelector('.chat-last-message');
+    if (!lastMsgNode) return;
+
+    lastMsgNode.textContent = `${time}: ${chat.lastMessageText || ''}`;
+}
+
+async function loadMessagesForChat(chatId) {
     const tx = db.transaction([messagesStoreName]);
     const store = tx.objectStore(messagesStoreName);
     const index = store.index("chatId");
@@ -214,44 +235,15 @@ async function loadMessagesForChat(chatId) {
     });
 }
 
-function storeMessage(chatId, message) {
-    const messageData = {
-        ...message,
-        chatId
-    };
-    const tx = db.transaction([messagesStoreName], "readwrite");
-    const store = tx.objectStore(messagesStoreName);
-    store.put(messageData);
-
-    const chat = chats.find(c => c.id === chatId);
-    if (chat) {
-        chat.timestamp = message.createdAt || new Date().toISOString();
-        storeChats();
-        renderChatList();
-    }
-}
-
-function storeMessagesForChat(chatId, messages) {
-    const tx = db.transaction([messagesStoreName], "readwrite");
-    const store = tx.objectStore(messagesStoreName);
-
-    messages.forEach(msg => {
-        msg["id"] = msg._id;
-        const messageData = {
-            ...msg,
-            chatId
-        };
-        store.put(messageData);
-    });
-}
-
 function selectChat(chatId) {
     currentChatId = chatId;
     const chat = chats.find(c => c.id === chatId);
+    console.log(chats);
+    console.log(chat);
 
     chatTitleElement.textContent = chat.name;
     chatLastTimeElement.textContent = chat.timestamp ? new Date(chat.timestamp).toLocaleTimeString([], {
-        hour: "2-digit", minute: "2-digit"
+        hour: "2-digit", minute: "2-digit", hour12: false
     }) : "";
 
     noChatSelectedElement.style.display = "none";
@@ -272,7 +264,7 @@ function renderMessages(messages) {
 
     messagesElement.innerHTML = messages.slice(0, 50).map(msg => {
         const time = new Date(msg.createdAt || msg.timestamp).toLocaleTimeString([], {
-            hour: "2-digit", minute: "2-digit"
+            hour: "2-digit", minute: "2-digit", hour12: false
         });
         const isSent = msg.senderId === localStorage.getItem("currentUserId");
 
@@ -287,6 +279,38 @@ function renderMessages(messages) {
     messagesElement.scrollTop = messagesElement.scrollHeight;
 }
 
+const formatTime = (timestamp) => {
+    return new Date(timestamp).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+    });
+};
+
+const escapeHtml = (str) => {
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+};
+
+function appendNewMessage(msg) {
+    const time = formatTime(msg.createdAt || msg.timestamp);
+    const isSent = msg.senderId === localStorage.getItem("currentUserId");
+
+    const msgHtml = `
+        <div class="message ${isSent ? "sent" : "received"}">
+            ${escapeHtml(msg.text)}
+            <div class="message-time">${time}</div>
+        </div>
+    `;
+
+    messagesElement.insertAdjacentHTML("beforeend", msgHtml);
+    messagesElement.scrollTop = messagesElement.scrollHeight;
+}
+
 async function sendMessage() {
     const text = messageInputElement.value.trim();
     if (!text || !currentChatId) return;
@@ -294,26 +318,21 @@ async function sendMessage() {
     messageInputElement.disabled = true;
     sendButton.disabled = true;
 
-    const senderId = localStorage.getItem("currentUserId");
-    const message = {
-        id: Date.now(),
-        conversationId: currentChatId,
-        senderId,
-        text,
-        createdAt: new Date().toISOString()
-    };
-
-    await storeMessage(currentChatId, message);
-    messageInputElement.value = "";
-    loadAndRenderMessages();
-
+    // 1. Send to backend FIRST
     const success = await sendMessageToRemote(currentChatId, text);
-    sendButton.disabled = false;
-    messageInputElement.disabled = false;
 
-    if (!success) {
-        console.error("Failed to send message");
+    if (success) {
+        // 2. Backend succeeded, refresh local data for this chat
+        await getMessages(currentChatId, 50);
+        await loadAndRenderMessages();
+    } else {
+        console.error("Failed to send message to backend");
+        alert("Failed to send message. Please try again.");
     }
+
+    messageInputElement.value = "";
+    messageInputElement.disabled = false;
+    sendButton.disabled = false;
 }
 
 async function searchUsers(query) {
@@ -355,7 +374,9 @@ async function createNewConversation(participantId) {
 
     if (result.ok) {
         const conversationId = result.data.conversationId;
-        await getConversations();
+
+        // Backend created it, now sync everything
+        await syncLocalWithBackend();
         closeModal();
         selectChat(conversationId);
     } else {
@@ -375,7 +396,28 @@ function closeModal() {
     renderUserList();
 }
 
+function subscribeToChannels() {
+    // Unsubscribe from all existing channels first
+    pusher.allChannels().forEach(channel => {
+        pusher.unsubscribe(channel.name);
+    });
+
+    // Subscribe to current chats
+    for (const chat of chats) {
+        const channelName = `conversation-${chat.id}`;
+        const channel = pusher.subscribe(channelName);
+
+        channel.unbind('new-message');
+        channel.bind('new-message', function (data) {
+            appendNewMessage(data.message);
+            // Refresh chat list to update timestamps
+            getConversations();
+        });
+    }
+}
+
 function initEventListeners() {
+    console.log("init eventListeners")
     document.getElementById("newChatButton").onclick = openModal;
     closeModalButton.onclick = closeModal;
     cancelNewChatButton.onclick = closeModal;
@@ -414,20 +456,18 @@ function initEventListeners() {
 }
 
 async function init() {
+    console.log("1.")
     await initDB();
 
-    if (!isDbInitialized) {
-        await populateFromRemote();
-    } else {
-        await loadChats();
-        renderChatList();
-    }
+    await syncLocalWithBackend();
+
+    var conversation_channel = pusher.subscribe(`conversation`);
+    conversation_channel.bind('new-conversation', async function (data) {
+        await syncLocalWithBackend();
+    });
+    console.log("2.")
+
     initEventListeners();
-    /*
-    setInterval(() => {
-        if (currentChatId) loadAndRenderMessages();
-    }, 10000);
-    */
 }
 
 document.addEventListener("DOMContentLoaded", init);
