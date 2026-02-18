@@ -1,9 +1,13 @@
-* { margin: 0; padding: 0; box-sizing: border-box; }
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: #667eea;
-    height: 100vh;
+    height: 100dvh;
     overflow: hidden;
 }
 
@@ -46,7 +50,9 @@ body {
     transition: transform 0.2s;
 }
 
-.new-chat-button:hover { transform: scale(1.1); }
+.new-chat-button:hover {
+    transform: scale(1.1);
+}
 
 .chat-list {
     flex: 1;
@@ -63,7 +69,8 @@ body {
     gap: 12px;
 }
 
-.chat-item:hover, .chat-item.active {
+.chat-item:hover,
+.chat-item.active {
     background: #e3f2fd;
 }
 
@@ -172,6 +179,7 @@ body {
     flex-direction: column;
     gap: 12px;
     background: #fafbfc;
+    overscroll-behavior: contain;
 }
 
 .message {
@@ -187,7 +195,7 @@ body {
     background: white;
     color: #333;
     border-bottom-left-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .message.sent {
@@ -204,11 +212,17 @@ body {
 }
 
 .chat-input-container {
+    position: fixed;
+    bottom: env(safe-area-inset-bottom);
+    /* iOS safe area */
+    left: 0;
+    right: 0;
     padding: 20px;
     background: white;
     border-top: 1px solid #e9ecef;
     display: flex;
     gap: 10px;
+    z-index: 1000;
 }
 
 #messageInput {
@@ -240,12 +254,17 @@ body {
     justify-content: center;
 }
 
-#sendButton::before { content: '→'; font-size: 1.4em; font-weight: bold; }
+#sendButton::before {
+    content: '→';
+    font-size: 1.4em;
+    font-weight: bold;
+}
 
 #sendButton:hover {
     transform: scale(1.05);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
+
 /*
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
@@ -258,7 +277,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -273,7 +292,7 @@ body {
     max-width: 500px;
     max-height: 80vh;
     overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
 .modal-header {
@@ -334,7 +353,8 @@ body {
     transition: background 0.2s;
 }
 
-.user-item:hover, .user-item.selected {
+.user-item:hover,
+.user-item.selected {
     background: #e3f2fd;
 }
 
@@ -384,8 +404,11 @@ body {
     cursor: pointer;
     font-weight: 500;
 }
+
 @media (max-width: 768px) {
-    html, body {
+
+    html,
+    body {
         height: 100%;
         overflow: hidden;
     }
@@ -403,7 +426,7 @@ body {
         z-index: 10;
         background: #f8f9fa;
         border-right: none;
-        display: none; 
+        display: none;
         flex-direction: column;
     }
 
@@ -413,9 +436,17 @@ body {
         left: 0;
         width: 100vw;
         height: 100vh;
-        display: none; 
+        display: none;
         flex-direction: column;
         background: #fafbfc;
+    }
+
+    .chat-main.mobile-show-chat .chat-input-container {
+        display: flex;
+    }
+
+    .chat-main:not(.mobile-show-chat) .chat-input-container {
+        display: none;
     }
 
     .messages {

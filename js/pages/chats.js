@@ -412,6 +412,8 @@ function showChatListMobile() {
     if (!isMobile()) return;
     document.querySelector(".chat-sidebar").classList.add("mobile-show-sidebar");
     document.querySelector(".chat-main").classList.remove("mobile-show-chat");
+    const inputContainer = document.getElementById('chatInputContainer');
+    if (inputContainer) inputContainer.style.display = 'flex';
 }
 
 function showChatMobile() {
@@ -445,6 +447,71 @@ function applyLayoutForViewport() {
 window.addEventListener("resize", applyLayoutForViewport);
 document.addEventListener("DOMContentLoaded", applyLayoutForViewport);
 
+function initKeyboardHandling() {
+    let keyboardHeight = 0;
+    
+    if (window.visualViewport) {
+        const inputContainer = document.getElementById('chatInputContainer');
+        
+        window.visualViewport.addEventListener('resize', () => {
+            if (!currentChatId || !inputContainer) return;
+            
+            const visibleHeight = window.visualViewport.height;
+            const fullHeight = window.innerHeight;
+            keyboardHeight = fullHeight - visibleHeight;
+            
+            const bottomOffset = keyboardHeight > 50 ? keyboardHeight : 'env(safe-area-inset-bottom)';
+            inputContainer.style.bottom = typeof bottomOffset === 'number' ? `${bottomOffset}px` : bottomOffset;
+
+            setTimeout(() => {
+                messagesElement.scrollTop = messagesElement.scrollHeight;
+            }, 50);
+        });
+        
+        window.visualViewport.addEventListener('scroll', () => {
+            messagesElement.scrollTop = messagesElement.scrollHeight;
+        });
+    }
+
+    if ('virtualKeyboard' in navigator && currentChatId) {
+        navigator.virtualKeyboard.addEventListener('geometrychange', (e) => {
+            const inputContainer = document.getElementById('chatInputContainer');
+            if (!inputContainer) return;
+            
+            keyboardHeight = e.target.boundingRect.height;
+            inputContainer.style.bottom = `${keyboardHeight}px`;
+            
+            setTimeout(() => {
+                messagesElement.scrollTop = messagesElement.scrollHeight;
+            }, 50);
+        });
+    }
+    
+    let initialHeight = window.innerHeight;
+    messageInputElement.addEventListener('focus', () => {
+        initialHeight = window.innerHeight;
+        setTimeout(() => {
+            messagesElement.scrollTop = messagesElement.scrollHeight;
+        }, 300);
+    });
+    
+    window.addEventListener('resize', () => {
+        if (!window.visualViewport) {
+            const inputContainer = document.getElementById('chatInputContainer');
+            const currentHeight = window.innerHeight;
+            const kbHeight = initialHeight - currentHeight;
+            
+            if (kbHeight > 100) {
+                inputContainer.style.bottom = `${kbHeight}px`;
+            } else {
+                inputContainer.style.bottom = 'env(safe-area-inset-bottom)';
+            }
+            initialHeight = currentHeight;
+            
+            messagesElement.scrollTop = messagesElement.scrollHeight;
+        }
+    });
+}
 
 
 async function createNewConversation(participantId) {
@@ -572,6 +639,9 @@ async function init() {
     renderChatList();
 
     initEventListeners();
+    if (isMobile()) {
+        initKeyboardHandling();
+    }
 }
 
 document.addEventListener("DOMContentLoaded", init);
