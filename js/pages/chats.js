@@ -29,6 +29,14 @@ const chatsStoreName = "chats";
 const currentUserId = localStorage.getItem("currentUserId");
 const BACKEND_URL = "https://pingme-backend-nu.vercel.app";
 
+function validateChatId(chatId, context = "unknown") {
+    if (!chatId || chatId.length !== 24) {
+        console.error(`Invalid chatId "${chatId}" in ${context}`);
+        return false;
+    }
+    return true;
+}
+
 async function apiCall(url, options = {}) {
     try {
         const token = localStorage.getItem("sessionToken");
@@ -81,25 +89,6 @@ async function initDB() {
     });
 }
 
-async function syncLocalWithBackend() {
-    // Get all conversations from backend
-    await getConversations();
-
-    await clearLocalData();
-
-    if (chats.length > 0) {
-        for (const chat of chats) {
-            await getMessages(chat.id, 1000);
-        }
-    }
-
-    renderChatList();
-    if (currentChatId) {
-        loadAndRenderMessages();
-    }
-    subscribeToChannels();
-}
-
 async function clearLocalData() {
     // Clear chats
     await new Promise((resolve) => {
@@ -123,7 +112,7 @@ async function clearLocalData() {
 async function getConversations() {
     const result = await apiCall("/conversations");
     if (result.ok && result.data.success) {
-        chats = result.data.conversations.map(conv => ({
+        chats = (result.data.conversations || []).map(conv => ({
             id: conv._id,
             name: conv.participants[0]?.name || conv.participants[0]?.userTag || "Unknown Chat",
             timestamp: conv.lastMessageAt || conv.updatedAt,
@@ -131,24 +120,45 @@ async function getConversations() {
             participants: conv.participants
         }));
         storeChats();
-        renderChatList();
+        return chats;
+    }
+    return [];
+}
+
+async function storeNewConversation(conversationId) {
+    const result = await apiCall(`/conversations/conversation/${conversationId}`);
+    if (result.ok && result.data.success) {
+        const conversation = result.data.conversation;
+        const chat = {
+            id: conversation._id,
+            name: conversation.participants[0]?.name || conversation.participants[0]?.userTag || "Unknown Chat",
+            timestamp: conversation.lastMessageAt || conversation.updatedAt,
+            lastMessageText: conversation.lastMessageText,
+            participants: conversation.participants
+        };
+        const tx = db.transaction([chatsStoreName], "readwrite");
+        const store = tx.objectStore(chatsStoreName);
+        store.put(chat);
     }
 }
 
 async function getMessages(conversationId, limit = 50, before = null) {
+    if (!validateChatId(conversationId, "getMessages")) return [];
+    
     const params = new URLSearchParams({ conversationId, limit });
     if (before) params.append("before", before);
 
     const result = await apiCall(`/conversations/messages?${params}`);
     if (result.ok) {
-        const messages = result.data.messages || [];
-        storeMessagesForChat(conversationId, messages);
-        return messages;
+        storeMessagesForChat(conversationId, result.data.messages || []);
+        return result.data.messages || [];
     }
     return [];
 }
 
 async function sendMessageToRemote(conversationId, text) {
+    if (!validateChatId(conversationId, "sendMessage")) return false;
+    
     const senderId = localStorage.getItem("currentUserId");
     const result = await apiCall("/conversations/messages", {
         method: "POST",
@@ -172,6 +182,43 @@ function storeMessagesForChat(chatId, messages) {
         const messageData = { ...msg, chatId };
         store.put(messageData);
     });
+}
+
+function storeMessage(chatId, message) {
+    message.id = message._id || Date.now().toString();
+    const messageData = { ...message, chatId };
+    
+    const tx = db.transaction([messagesStoreName], "readwrite");
+    const store = tx.objectStore(messagesStoreName);
+    store.put(messageData);
+}
+
+async function initialSync() {
+    await getConversations();
+    await clearLocalData();
+    
+    for (const chat of chats) {
+        await getMessages(chat.id, 50); // Only recent 50 messages
+    }
+    
+    renderChatList();
+    subscribeToChannels();
+}
+
+async function appendMessageLocally(chatId, message) {
+    await loadChats()
+    storeMessage(chatId, message);
+    const chat = chats.find(c => c.id === chatId);
+    if (chat) {
+        chat.timestamp = message.createdAt || new Date().toISOString();
+        chat.lastMessageText = message.text;
+        storeChats();
+        renderChatList();
+    }
+
+    if (currentChatId === chatId) {
+        appendNewMessage(message);
+    }
 }
 
 function loadChats() {
@@ -210,17 +257,6 @@ function renderChatList() {
     });
 }
 
-function updateChatLastMessage(chat) {
-    const time = formatTime(chat.lastMessageAt || Date.now());
-    const item = document.querySelector(`.chat-item[data-chat-id="${chat.id}"]`);
-    if (!item) return;
-
-    const lastMsgNode = item.querySelector('.chat-last-message');
-    if (!lastMsgNode) return;
-
-    lastMsgNode.textContent = `${time}: ${chat.lastMessageText || ''}`;
-}
-
 async function loadMessagesForChat(chatId) {
     const tx = db.transaction([messagesStoreName]);
     const store = tx.objectStore(messagesStoreName);
@@ -236,10 +272,13 @@ async function loadMessagesForChat(chatId) {
 }
 
 function selectChat(chatId) {
+    if (!validateChatId(chatId, "selectChat")) return;
+    
     currentChatId = chatId;
     const chat = chats.find(c => c.id === chatId);
-    console.log(chats);
-    console.log(chat);
+    if (!chat) return;
+
+    subscribeToChat(chatId);
 
     chatTitleElement.textContent = chat.name;
     chatLastTimeElement.textContent = chat.timestamp ? new Date(chat.timestamp).toLocaleTimeString([], {
@@ -249,8 +288,8 @@ function selectChat(chatId) {
     noChatSelectedElement.style.display = "none";
     chatContainerElement.style.display = "flex";
 
-    renderChatList();
     loadAndRenderMessages();
+    renderChatList();
 }
 
 async function loadAndRenderMessages() {
@@ -270,7 +309,7 @@ function renderMessages(messages) {
 
         return `
             <div class="message ${isSent ? "sent" : "received"}">
-                ${msg.text}
+                ${escapeHtml(msg.text)}
                 <div class="message-time">${time}</div>
             </div>
         `;
@@ -317,22 +356,19 @@ async function sendMessage() {
 
     messageInputElement.disabled = true;
     sendButton.disabled = true;
+    //sendButton.textContent = "Sending...";
 
-    // 1. Send to backend FIRST
     const success = await sendMessageToRemote(currentChatId, text);
-
-    if (success) {
-        // 2. Backend succeeded, refresh local data for this chat
-        await getMessages(currentChatId, 50);
-        await loadAndRenderMessages();
-    } else {
-        console.error("Failed to send message to backend");
-        alert("Failed to send message. Please try again.");
+    
+    messageInputElement.value = "";
+    
+    if (!success) {
+        alert("Failed to send message");
     }
 
-    messageInputElement.value = "";
     messageInputElement.disabled = false;
     sendButton.disabled = false;
+    sendButton.textContent = "Send";
 }
 
 async function searchUsers(query) {
@@ -346,11 +382,11 @@ async function searchUsers(query) {
 function renderUserList() {
     if (users.length === 0) {
         userListElement.innerHTML = "";
-        document.querySelector(".no-users").style.display = "block";
+        document.querySelector(".no-users") && (document.querySelector(".no-users").style.display = "block");
         return;
     }
 
-    document.querySelector(".no-users").style.display = "none";
+    document.querySelector(".no-users") && (document.querySelector(".no-users").style.display = "none");
     userListElement.innerHTML = users.map(user => `
         <div class="user-item" data-user-id="${user._id}">
             <div class="user-avatar">${user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}</div>
@@ -372,13 +408,16 @@ async function createNewConversation(participantId) {
         body: JSON.stringify({ participantId })
     });
 
-    if (result.ok) {
-        const conversationId = result.data.conversationId;
-
-        // Backend created it, now sync everything
-        await syncLocalWithBackend();
+     if (result.ok) {
+        const newChatId = result.data.conversationId;
+        
+        subscribeToNewChat(newChatId);
+        
         closeModal();
-        selectChat(conversationId);
+        await getConversations();
+        renderChatList();
+        
+        selectChat(newChatId);
     } else {
         alert(result.data?.error || "Failed to create chat");
     }
@@ -397,27 +436,44 @@ function closeModal() {
 }
 
 function subscribeToChannels() {
-    // Unsubscribe from all existing channels first
+    // Clean up old subscriptions
     pusher.allChannels().forEach(channel => {
         pusher.unsubscribe(channel.name);
     });
 
-    // Subscribe to current chats
-    for (const chat of chats) {
-        const channelName = `conversation-${chat.id}`;
-        const channel = pusher.subscribe(channelName);
+    const conversationChannel = pusher.subscribe('conversation');
+    conversationChannel.bind('new-conversation', async (data) => {
+        await storeNewConversation(data.message.conversationId);
+        subscribeToNewChat(data.message.conversationId);
+    });
 
-        channel.unbind('new-message');
-        channel.bind('new-message', function (data) {
-            appendNewMessage(data.message);
-            // Refresh chat list to update timestamps
-            getConversations();
-        });
+    chats.forEach(chat => {
+        subscribeToChat(chat.id);
+    });
+}
+
+function subscribeToChat(chatId) {
+    if (!validateChatId(chatId, "subscribeToChat")) return;
+    
+    const channelName = `conversation-${chatId}`;
+    
+    // Don't subscribe twice
+    if (pusher.channel(channelName)) {
+        return;
     }
+    
+    const channel = pusher.subscribe(channelName);
+    
+    channel.bind('new-message', (data) => {
+        appendMessageLocally(chatId, data.message);
+    });
+}
+
+function subscribeToNewChat(chatId) {
+    subscribeToChat(chatId);
 }
 
 function initEventListeners() {
-    console.log("init eventListeners")
     document.getElementById("newChatButton").onclick = openModal;
     closeModalButton.onclick = closeModal;
     cancelNewChatButton.onclick = closeModal;
@@ -427,16 +483,14 @@ function initEventListeners() {
     };
 
     participantSearchElement.oninput = (e) => {
-
         const query = e.target.value.trim();
         if (query.length < 3) {
             users = [];
             renderUserList();
-            return
+            return;
         }
-
         searchUsers(query);
-    }
+    };
 
     document.getElementById("backButton").onclick = () => {
         currentChatId = null;
@@ -446,7 +500,11 @@ function initEventListeners() {
     };
 
     document.getElementById("sendButton").onclick = sendMessage;
-    document.getElementById("refreshButton").onclick = loadAndRenderMessages;
+    
+    document.getElementById("refreshButton").onclick = async () => {
+        await initialSync();
+    };
+    
     messageInputElement.addEventListener("keydown", (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
@@ -456,16 +514,10 @@ function initEventListeners() {
 }
 
 async function init() {
-    console.log("1.")
     await initDB();
+    await initialSync();
 
-    await syncLocalWithBackend();
-
-    var conversation_channel = pusher.subscribe(`conversation`);
-    conversation_channel.bind('new-conversation', async function (data) {
-        await syncLocalWithBackend();
-    });
-    console.log("2.")
+    renderChatList();
 
     initEventListeners();
 }
