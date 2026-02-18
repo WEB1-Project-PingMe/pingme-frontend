@@ -225,7 +225,7 @@ body {
     border-color: #667eea;
 }
 
-#sendButton, #refreshButton {
+#sendButton {
     width: 50px;
     height: 50px;
     border: none;
@@ -241,9 +241,8 @@ body {
 }
 
 #sendButton::before { content: '→'; font-size: 1.4em; font-weight: bold; }
-#refreshButton::before { content: '↻'; font-size: 1.1em; }
 
-#sendButton:hover, #refreshButton:hover {
+#sendButton:hover {
     transform: scale(1.05);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
@@ -386,18 +385,15 @@ body {
     font-weight: 500;
 }
 @media (max-width: 768px) {
-    body {
+    html, body {
+        height: 100%;
         overflow: hidden;
     }
 
     .app-container {
-        position: relative;
-        display: block;
-        width: 100vw;
-        height: 100vh;
+        height: 100;
     }
 
-    /* Sidebar: full-screen list when visible */
     .chat-sidebar {
         position: absolute;
         top: 0;
@@ -407,28 +403,31 @@ body {
         z-index: 10;
         background: #f8f9fa;
         border-right: none;
-        display: none; /* hidden by default, shown via .mobile-show-sidebar */
+        display: none; 
         flex-direction: column;
     }
 
-    /* Main chat: full-screen when visible */
     .chat-main {
         position: absolute;
         top: 0;
         left: 0;
         width: 100vw;
         height: 100vh;
-        display: none; /* hidden by default, shown via .mobile-show-chat */
+        display: none; 
         flex-direction: column;
         background: #fafbfc;
     }
 
-    /* On mobile, back button is always visible */
+    .messages {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+    }
+
     .back-button {
         display: inline-flex;
     }
 
-    /* Utility classes controlled via JS */
     .mobile-show-sidebar {
         display: flex;
     }
@@ -437,7 +436,6 @@ body {
         display: flex;
     }
 
-    /* Optional: hide "Select a chat" screen on mobile */
     .no-chat-selected {
         display: none !important;
     }

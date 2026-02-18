@@ -1,7 +1,6 @@
 const messagesElement = document.getElementById("messages");
 const messageInputElement = document.getElementById("messageInput");
 const sendButton = document.getElementById("sendButton");
-const refreshButton = document.getElementById("refreshButton");
 const chatListElement = document.getElementById("chatList");
 const chatContainerElement = document.getElementById("chatContainer");
 const noChatSelectedElement = document.getElementById("noChatSelected");
@@ -554,9 +553,9 @@ function initEventListeners() {
 
     document.getElementById("sendButton").onclick = sendMessage;
 
-    document.getElementById("refreshButton").onclick = async () => {
-        await initialSync();
-    };
+    // document.getElementById("refreshButton").onclick = async () => {
+    //     await initialSync();
+    // };
 
     messageInputElement.addEventListener("keydown", (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
