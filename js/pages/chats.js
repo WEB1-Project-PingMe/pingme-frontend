@@ -18,8 +18,8 @@ let users = [];
 let chats = [];
 let currentChatId = null;
 let db;
-let pusher = new Pusher('d8e5b208992682efa26f', {
-    cluster: 'eu'
+let pusher = new Pusher("d8e5b208992682efa26f", {
+    cluster: "eu"
 });
 
 const DB_NAME = "PingMeDB";
@@ -50,7 +50,7 @@ async function apiCall(url, options = {}) {
 
         if (response.status === 401) {
             localStorage.removeItem("sessionToken");
-            window.location.href = "/login";
+            window.location.href = "../auth/login.html";
             throw new Error("Session expired");
         }
 
@@ -412,8 +412,8 @@ function showChatListMobile() {
     if (!isMobile()) return;
     document.querySelector(".chat-sidebar").classList.add("mobile-show-sidebar");
     document.querySelector(".chat-main").classList.remove("mobile-show-chat");
-    const inputContainer = document.getElementById('chatInputContainer');
-    if (inputContainer) inputContainer.style.display = 'flex';
+    const inputContainer = document.getElementById("chatInputContainer");
+    if (inputContainer) inputContainer.style.display = "flex";
 }
 
 function showChatMobile() {
@@ -449,65 +449,65 @@ document.addEventListener("DOMContentLoaded", applyLayoutForViewport);
 
 function initKeyboardHandling() {
     let keyboardHeight = 0;
-    
+
     if (window.visualViewport) {
-        const inputContainer = document.getElementById('chatInputContainer');
-        
-        window.visualViewport.addEventListener('resize', () => {
+        const inputContainer = document.getElementById("chatInputContainer");
+
+        window.visualViewport.addEventListener("resize", () => {
             if (!currentChatId || !inputContainer) return;
-            
+
             const visibleHeight = window.visualViewport.height;
             const fullHeight = window.innerHeight;
             keyboardHeight = fullHeight - visibleHeight;
-            
-            const bottomOffset = keyboardHeight > 50 ? keyboardHeight : 'env(safe-area-inset-bottom)';
-            inputContainer.style.bottom = typeof bottomOffset === 'number' ? `${bottomOffset}px` : bottomOffset;
+
+            const bottomOffset = keyboardHeight > 50 ? keyboardHeight : "env(safe-area-inset-bottom)";
+            inputContainer.style.bottom = typeof bottomOffset === "number" ? `${bottomOffset}px` : bottomOffset;
 
             setTimeout(() => {
                 messagesElement.scrollTop = messagesElement.scrollHeight;
             }, 50);
         });
-        
-        window.visualViewport.addEventListener('scroll', () => {
+
+        window.visualViewport.addEventListener("scroll", () => {
             messagesElement.scrollTop = messagesElement.scrollHeight;
         });
     }
 
-    if ('virtualKeyboard' in navigator && currentChatId) {
-        navigator.virtualKeyboard.addEventListener('geometrychange', (e) => {
-            const inputContainer = document.getElementById('chatInputContainer');
+    if ("virtualKeyboard" in navigator && currentChatId) {
+        navigator.virtualKeyboard.addEventListener("geometrychange", (e) => {
+            const inputContainer = document.getElementById("chatInputContainer");
             if (!inputContainer) return;
-            
+
             keyboardHeight = e.target.boundingRect.height;
             inputContainer.style.bottom = `${keyboardHeight}px`;
-            
+
             setTimeout(() => {
                 messagesElement.scrollTop = messagesElement.scrollHeight;
             }, 50);
         });
     }
-    
+
     let initialHeight = window.innerHeight;
-    messageInputElement.addEventListener('focus', () => {
+    messageInputElement.addEventListener("focus", () => {
         initialHeight = window.innerHeight;
         setTimeout(() => {
             messagesElement.scrollTop = messagesElement.scrollHeight;
         }, 300);
     });
-    
-    window.addEventListener('resize', () => {
+
+    window.addEventListener("resize", () => {
         if (!window.visualViewport) {
-            const inputContainer = document.getElementById('chatInputContainer');
+            const inputContainer = document.getElementById("chatInputContainer");
             const currentHeight = window.innerHeight;
             const kbHeight = initialHeight - currentHeight;
-            
+
             if (kbHeight > 100) {
                 inputContainer.style.bottom = `${kbHeight}px`;
             } else {
-                inputContainer.style.bottom = 'env(safe-area-inset-bottom)';
+                inputContainer.style.bottom = "env(safe-area-inset-bottom)";
             }
             initialHeight = currentHeight;
-            
+
             messagesElement.scrollTop = messagesElement.scrollHeight;
         }
     });
@@ -553,8 +553,8 @@ function subscribeToChannels() {
         pusher.unsubscribe(channel.name);
     });
 
-    const conversationChannel = pusher.subscribe('conversation');
-    conversationChannel.bind('new-conversation', async (data) => {
+    const conversationChannel = pusher.subscribe("conversation");
+    conversationChannel.bind("new-conversation", async (data) => {
         await storeNewConversation(data.message.conversationId);
         subscribeToNewChat(data.message.conversationId);
     });
@@ -576,7 +576,7 @@ function subscribeToChat(chatId) {
 
     const channel = pusher.subscribe(channelName);
 
-    channel.bind('new-message', (data) => {
+    channel.bind("new-message", (data) => {
         appendMessageLocally(chatId, data.message);
     });
 }
@@ -633,8 +633,27 @@ function initEventListeners() {
 }
 
 async function init() {
+    const token = localStorage.getItem("sessionToken");
+    try {
+        await fetch(`${BACKEND_URL}/auth/login`, {
+            headers: {
+                "Content-Type": "application/json",
+                ...(token && { "Authorization": `Bearer ${token}` })
+            }
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.loggedIn) {
+                    window.location.href = "../auth/login.html";
+                }
+            });
+    } catch (error) {
+        window.location.href = "../auth/login.html";
+    }
     await initDB();
     await initialSync();
+
+    document.getElementById("authOverlay").style.display = "none";
 
     renderChatList();
 
