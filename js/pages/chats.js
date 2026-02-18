@@ -98,7 +98,7 @@ async function clearLocalData() {
         tx.oncomplete = resolve;
         tx.onerror = () => console.error("Clear chats failed");
     });
-    
+
     // Clear messages
     await new Promise((resolve) => {
         const tx = db.transaction([messagesStoreName], "readwrite");
@@ -144,7 +144,7 @@ async function storeNewConversation(conversationId) {
 
 async function getMessages(conversationId, limit = 50, before = null) {
     if (!validateChatId(conversationId, "getMessages")) return [];
-    
+
     const params = new URLSearchParams({ conversationId, limit });
     if (before) params.append("before", before);
 
@@ -158,7 +158,7 @@ async function getMessages(conversationId, limit = 50, before = null) {
 
 async function sendMessageToRemote(conversationId, text) {
     if (!validateChatId(conversationId, "sendMessage")) return false;
-    
+
     const senderId = localStorage.getItem("currentUserId");
     const result = await apiCall("/conversations/messages", {
         method: "POST",
@@ -187,7 +187,7 @@ function storeMessagesForChat(chatId, messages) {
 function storeMessage(chatId, message) {
     message.id = message._id || Date.now().toString();
     const messageData = { ...message, chatId };
-    
+
     const tx = db.transaction([messagesStoreName], "readwrite");
     const store = tx.objectStore(messagesStoreName);
     store.put(messageData);
@@ -196,11 +196,11 @@ function storeMessage(chatId, message) {
 async function initialSync() {
     await getConversations();
     await clearLocalData();
-    
+
     for (const chat of chats) {
         await getMessages(chat.id, 50); // Only recent 50 messages
     }
-    
+
     renderChatList();
     subscribeToChannels();
 }
@@ -273,7 +273,7 @@ async function loadMessagesForChat(chatId) {
 
 function selectChat(chatId) {
     if (!validateChatId(chatId, "selectChat")) return;
-    
+
     currentChatId = chatId;
     const chat = chats.find(c => c.id === chatId);
     if (!chat) return;
@@ -287,6 +287,8 @@ function selectChat(chatId) {
 
     noChatSelectedElement.style.display = "none";
     chatContainerElement.style.display = "flex";
+
+    showChatMobile();
 
     loadAndRenderMessages();
     renderChatList();
@@ -359,16 +361,16 @@ async function sendMessage() {
     //sendButton.textContent = "Sending...";
 
     const success = await sendMessageToRemote(currentChatId, text);
-    
+
     messageInputElement.value = "";
-    
+
     if (!success) {
         alert("Failed to send message");
     }
 
     messageInputElement.disabled = false;
     sendButton.disabled = false;
-    sendButton.textContent = "Send";
+    //sendButton.textContent = "Send";
 }
 
 async function searchUsers(query) {
@@ -402,21 +404,65 @@ function renderUserList() {
     });
 }
 
+function isMobile() {
+    let output = window.innerWidth <= 768
+    return output;
+}
+
+function showChatListMobile() {
+    if (!isMobile()) return;
+    document.querySelector(".chat-sidebar").classList.add("mobile-show-sidebar");
+    document.querySelector(".chat-main").classList.remove("mobile-show-chat");
+}
+
+function showChatMobile() {
+    if (!isMobile()) return;
+    document.querySelector(".chat-sidebar").classList.remove("mobile-show-sidebar");
+    document.querySelector(".chat-main").classList.add("mobile-show-chat");
+}
+
+function applyLayoutForViewport() {
+    const sidebar = document.querySelector(".chat-sidebar");
+    const main = document.querySelector(".chat-main");
+
+    if (isMobile()) {
+        if (!currentChatId) {
+            // No chat selected: show list
+            sidebar.classList.add("mobile-show-sidebar");
+            main.classList.remove("mobile-show-chat");
+        } else {
+            // Chat selected: show chat
+            sidebar.classList.remove("mobile-show-sidebar");
+            main.classList.add("mobile-show-chat");
+        }
+    } else {
+        sidebar.classList.remove("mobile-show-sidebar");
+        main.classList.remove("mobile-show-chat");
+        main.style.display = "flex";
+    }
+}
+
+
+window.addEventListener("resize", applyLayoutForViewport);
+document.addEventListener("DOMContentLoaded", applyLayoutForViewport);
+
+
+
 async function createNewConversation(participantId) {
     const result = await apiCall("/conversations", {
         method: "POST",
         body: JSON.stringify({ participantId })
     });
 
-     if (result.ok) {
+    if (result.ok) {
         const newChatId = result.data.conversationId;
-        
+
         subscribeToNewChat(newChatId);
-        
+
         closeModal();
         await getConversations();
         renderChatList();
-        
+
         selectChat(newChatId);
     } else {
         alert(result.data?.error || "Failed to create chat");
@@ -454,16 +500,16 @@ function subscribeToChannels() {
 
 function subscribeToChat(chatId) {
     if (!validateChatId(chatId, "subscribeToChat")) return;
-    
+
     const channelName = `conversation-${chatId}`;
-    
+
     // Don't subscribe twice
     if (pusher.channel(channelName)) {
         return;
     }
-    
+
     const channel = pusher.subscribe(channelName);
-    
+
     channel.bind('new-message', (data) => {
         appendMessageLocally(chatId, data.message);
     });
@@ -494,17 +540,24 @@ function initEventListeners() {
 
     document.getElementById("backButton").onclick = () => {
         currentChatId = null;
-        noChatSelectedElement.style.display = "flex";
-        chatContainerElement.style.display = "none";
+        if (isMobile()) {
+            showChatListMobile();
+            chatContainerElement.style.display = "none";
+            noChatSelectedElement.style.display = "none";
+        } else {
+            noChatSelectedElement.style.display = "flex";
+            chatContainerElement.style.display = "none";
+
+        }
         renderChatList();
     };
 
     document.getElementById("sendButton").onclick = sendMessage;
-    
+
     document.getElementById("refreshButton").onclick = async () => {
         await initialSync();
     };
-    
+
     messageInputElement.addEventListener("keydown", (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();

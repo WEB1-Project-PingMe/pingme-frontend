@@ -385,3 +385,60 @@ body {
     cursor: pointer;
     font-weight: 500;
 }
+@media (max-width: 768px) {
+    body {
+        overflow: hidden;
+    }
+
+    .app-container {
+        position: relative;
+        display: block;
+        width: 100vw;
+        height: 100vh;
+    }
+
+    /* Sidebar: full-screen list when visible */
+    .chat-sidebar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 10;
+        background: #f8f9fa;
+        border-right: none;
+        display: none; /* hidden by default, shown via .mobile-show-sidebar */
+        flex-direction: column;
+    }
+
+    /* Main chat: full-screen when visible */
+    .chat-main {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        display: none; /* hidden by default, shown via .mobile-show-chat */
+        flex-direction: column;
+        background: #fafbfc;
+    }
+
+    /* On mobile, back button is always visible */
+    .back-button {
+        display: inline-flex;
+    }
+
+    /* Utility classes controlled via JS */
+    .mobile-show-sidebar {
+        display: flex;
+    }
+
+    .mobile-show-chat {
+        display: flex;
+    }
+
+    /* Optional: hide "Select a chat" screen on mobile */
+    .no-chat-selected {
+        display: none !important;
+    }
+}
