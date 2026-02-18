@@ -215,7 +215,7 @@ body {
     position: fixed;
     bottom: env(safe-area-inset-bottom);
     /* iOS safe area */
-    left: 0;
+    left: 360px;
     right: 0;
     padding: 20px;
     background: white;
@@ -504,6 +504,10 @@ body {
 
     .chat-main.mobile-show-chat .chat-input-container {
         display: flex;
+    }
+
+    .chat-input-container {
+        left: 0 !important;
     }
 
     .chat-main:not(.mobile-show-chat) .chat-input-container {
