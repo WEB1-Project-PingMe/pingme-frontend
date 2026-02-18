@@ -51,15 +51,38 @@
         <div id="newChatModal" class="modal-overlay" style="display: none;">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>New Chat</h3>
+                    <h3 id="modalTitle">New Chat</h3>
                     <button id="closeModalButton" class="close-button">×</button>
                 </div>
                 <div class="modal-body">
-                    <input type="text" id="participantSearch" placeholder="Search users..." class="search-input">
-                    <div id="userList" class="user-list"></div>
+                    <!-- Type selector -->
+                    <div class="chat-type-selector">
+                        <label class="type-option active" data-type="direct">
+                            <input type="radio" name="chatType" value="direct" checked>
+                            <span>1:1 Chat</span>
+                        </label>
+                        <label class="type-option" data-type="group">
+                            <input type="radio" name="chatType" value="group">
+                            <span>Group Chat</span>
+                        </label>
+                    </div>
+
+                    <!-- Dynamic content based on type -->
+                    <div id="directContent">
+                        <input type="text" id="participantSearch" placeholder="Search users..." class="search-input">
+                        <div id="userList" class="user-list"></div>
+                    </div>
+                    <div id="groupContent" style="display: none;">
+                        <input type="text" id="groupNameInput" placeholder="Group name" class="search-input"
+                            maxlength="50">
+                        <input type="text" id="groupMemberSearch" placeholder="Search members..." class="search-input">
+                        <div id="groupMemberList" class="user-list"></div>
+                        <div id="selectedMembers" class="selected-members"></div>
+                    </div>
                     <p class="no-users">No users found</p>
                 </div>
                 <div class="modal-footer">
+                    <button id="createChatButton" class="button-primary" disabled>Create</button>
                     <button id="cancelNewChat" class="button-secondary">Cancel</button>
                 </div>
             </div>

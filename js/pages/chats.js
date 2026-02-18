@@ -13,6 +13,17 @@ const participantSearchElement = document.getElementById("participantSearch");
 const userListElement = document.getElementById("userList");
 const closeModalButton = document.getElementById("closeModalButton");
 const cancelNewChatButton = document.getElementById("cancelNewChat");
+const modalTitleElement = document.getElementById("modalTitle");
+const directContent = document.getElementById("directContent");
+const groupContent = document.getElementById("groupContent");
+const groupNameInput = document.getElementById("groupNameInput");
+const groupMemberSearch = document.getElementById("groupMemberSearch");
+const groupMemberList = document.getElementById("groupMemberList");
+const selectedMembersElement = document.getElementById("selectedMembers");
+const createChatButton = document.getElementById("createChatButton");
+
+let selectedGroupMembers = [];
+let currentModalType = 'direct';
 
 let users = [];
 let chats = [];
@@ -124,6 +135,41 @@ async function getConversations() {
     return [];
 }
 
+async function getChats() {
+    const [convResult, groupResult] = await Promise.all([
+        apiCall("/conversations"),
+        apiCall("/groups")
+    ]);
+
+    if (convResult.ok && convResult.data.success) {
+        const conversationChats = (convResult.data.conversations || []).map(conv => ({
+            id: conv._id,
+            name: conv.participants[0]?.name || conv.participants[0]?.userTag || "Unknown Chat",
+            timestamp: conv.lastMessageAt || conv.updatedAt,
+            lastMessageText: conv.lastMessageText,
+            participants: conv.participants,
+            type: "conversation"
+        }));
+        chats = chats.concat(conversationChats);
+    }
+
+    if (groupResult.ok && groupResult.data) {
+        const groupChats = (groupResult.data || []).map(group => ({
+            id: group._id,
+            name: group.name || "Unknown Group",
+            timestamp: group.lastMessageAt || group.updatedAt,
+            lastMessageText: group.lastMessageText,
+            members: group.memberIds,
+            admins: group.adminIds,
+            type: "group"
+        }));
+        chats = chats.concat(groupChats);
+    }
+    console.log(chats)
+    storeChats();
+    return chats;
+}
+
 async function storeNewConversation(conversationId) {
     const result = await apiCall(`/conversations/conversation/${conversationId}`);
     if (result.ok && result.data.success) {
@@ -193,8 +239,9 @@ function storeMessage(chatId, message) {
 }
 
 async function initialSync() {
-    await getConversations();
     await clearLocalData();
+
+    await getChats();
 
     for (const chat of chats) {
         await getMessages(chat.id, 50); // Only recent 50 messages
@@ -372,7 +419,31 @@ async function sendMessage() {
     //sendButton.textContent = "Send";
 }
 
+function switchChatType(type) {
+    currentModalType = type;
+    document.querySelectorAll('.type-option').forEach(opt => opt.classList.remove('active'));
+    document.querySelector(`[data-type="${type}"]`).classList.add('active');
+    
+    if (type === 'direct') {
+        modalTitleElement.textContent = 'New Chat';
+        directContent.style.display = 'block';
+        groupContent.style.display = 'none';
+        participantSearchElement.focus();
+    } else {
+        modalTitleElement.textContent = 'New Group';
+        directContent.style.display = 'none';
+        groupContent.style.display = 'block';
+        groupNameInput.focus();
+    }
+    updateCreateButton();
+}
+
 async function searchUsers(query) {
+    if (query.length < 3) {
+        users = [];
+        renderUserList();
+        return;
+    }
     const result = await apiCall(`/users/search/${encodeURIComponent(query)}`);
     if (result.ok) {
         users = result.data.users || [];
@@ -380,28 +451,131 @@ async function searchUsers(query) {
     }
 }
 
-function renderUserList() {
-    if (users.length === 0) {
-        userListElement.innerHTML = "";
-        document.querySelector(".no-users") && (document.querySelector(".no-users").style.display = "block");
+async function searchGroupMembers(query) {
+    if (query.length < 3) {
+        users = [];
+        renderGroupMemberList();
         return;
     }
+    const result = await apiCall(`/users/search/${encodeURIComponent(query)}`);
+    if (result.ok) {
+        const currentUserId = localStorage.getItem("currentUserId");
+        users = (result.data.users || []).filter(u => 
+            u._id !== currentUserId && !selectedGroupMembers.includes(u._id)
+        );
+        renderGroupMemberList();
+    }
+    if (result.ok) {
+        users = result.data.users || [];
+        renderGroupMemberList();
+    }
+}
 
-    document.querySelector(".no-users") && (document.querySelector(".no-users").style.display = "none");
+function renderUserList() {
     userListElement.innerHTML = users.map(user => `
         <div class="user-item" data-user-id="${user._id}">
-            <div class="user-avatar">${user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}</div>
+            <div class="user-avatar">${user.name?.charAt(0).toUpperCase()}</div>
             <div class="user-info">
                 <h4>${user.name || user.email}</h4>
                 <p>#${user.tag}</p>
             </div>
         </div>
     `).join("");
-
-    document.querySelectorAll(".user-item").forEach(item => {
+    document.querySelectorAll("#userList .user-item").forEach(item => {
         item.onclick = () => createNewConversation(item.dataset.userId);
     });
+    document.querySelector(".no-users").style.display = users.length === 0 ? "block" : "none";
 }
+
+function renderGroupMemberList() {
+    groupMemberList.innerHTML = users.map(user => `
+        <div class="user-item" data-user-id="${user._id}">
+            <div class="user-avatar">${user.name?.charAt(0).toUpperCase()}</div>
+            <div class="user-info">
+                <h4>${user.name || user.email}</h4>
+                <p>#${user.tag}</p>
+            </div>
+        </div>
+    `).join("");
+    
+    document.querySelectorAll("#groupMemberList .user-item").forEach(item => {
+        item.onclick = () => toggleGroupMember(item.dataset.userId, item);
+    });
+    document.querySelector(".no-users").style.display = users.length === 0 ? "block" : "none";
+}
+
+function toggleGroupMember(userId, element) {
+    const index = selectedGroupMembers.indexOf(userId);
+    if (index > -1) {
+        selectedGroupMembers.splice(index, 1);
+        element.classList.remove('selected');
+    } else {
+        selectedGroupMembers.push(userId);
+        element.classList.add('selected');
+    }
+    renderSelectedMembers();
+    updateCreateButton();
+}
+
+function renderSelectedMembers() {
+    selectedMembersElement.innerHTML = selectedGroupMembers.map(id => {
+        const user = users.find(u => u._id === id) || { name: 'Loading...' };
+        return `
+            <span class="selected-member">
+                ${user.name}
+                <span class="remove-member" data-id="${id}">×</span>
+            </span>
+        `;
+    }).join("");
+    
+    // Add remove handlers
+    selectedMembersElement.querySelectorAll('.remove-member').forEach(span => {
+        span.onclick = (e) => {
+            e.stopPropagation();
+            const userId = span.dataset.id;
+            selectedGroupMembers = selectedGroupMembers.filter(id => id !== userId);
+            renderSelectedMembers();
+            updateCreateButton();
+        };
+    });
+}
+
+function updateCreateButton() {
+    const hasContent = currentModalType === 'direct' || 
+        (groupNameInput.value.trim() && selectedGroupMembers.length >= 1);
+    createChatButton.disabled = !hasContent;
+}
+
+async function createChat() {
+    if (currentModalType === 'direct') {
+        // Single user already handled by renderUserList onclick
+        return;
+    } else {
+        await createNewGroup();
+    }
+}
+
+function openModal() {
+    newChatModalElement.style.display = "flex";
+    switchChatType('direct'); // Default to 1:1
+    participantSearchElement.value = "";
+    groupNameInput.value = "";
+    selectedGroupMembers = [];
+    users = [];
+    renderUserList();
+}
+
+function closeModal() {
+    newChatModalElement.style.display = "none";
+    participantSearchElement.value = "";
+    groupNameInput.value = "";
+    groupMemberSearch.value = "";
+    selectedGroupMembers = [];
+    users = [];
+    createChatButton.disabled = true;
+    renderUserList();
+}
+
 
 function isMobile() {
     let output = window.innerWidth <= 768
@@ -526,7 +700,7 @@ async function createNewConversation(participantId) {
         subscribeToNewChat(newChatId);
 
         closeModal();
-        await getConversations();
+        await getChats();
         renderChatList();
 
         selectChat(newChatId);
@@ -534,6 +708,37 @@ async function createNewConversation(participantId) {
         alert(result.data?.error || "Failed to create chat");
     }
 }
+
+async function createNewGroup() {
+    const name = groupNameInput.value.trim();
+    if (!name || selectedGroupMembers.length < 1) return;
+    
+    // Creator (current user) becomes admin
+    const currentUserId = localStorage.getItem("currentUserId");
+    const adminIds = [currentUserId];
+
+    selectedGroupMembers.push(currentUserId);
+    
+    const result = await apiCall("/groups", {
+        method: "POST",
+        body: JSON.stringify({ 
+            name: name,
+            adminIds: adminIds,
+            memberIds: selectedGroupMembers 
+        })
+    });
+    
+    if (result.ok && result.data) {
+        const newGroupId = result.data._Id;
+        closeModal();
+        await getChats();
+        renderChatList();
+        selectChat(newGroupId);
+    } else {
+        alert(result.data?.message || result.error || "Failed to create group");
+    }
+}
+
 
 function openModal() {
     newChatModalElement.style.display = "flex";
@@ -589,20 +794,40 @@ function initEventListeners() {
     document.getElementById("newChatButton").onclick = openModal;
     closeModalButton.onclick = closeModal;
     cancelNewChatButton.onclick = closeModal;
+    createChatButton.onclick = createChat;
 
     newChatModalElement.onclick = (e) => {
         if (e.target === newChatModalElement) closeModal();
     };
 
-    participantSearchElement.oninput = (e) => {
-        const query = e.target.value.trim();
-        if (query.length < 3) {
-            users = [];
-            renderUserList();
-            return;
-        }
-        searchUsers(query);
-    };
+    document.querySelectorAll(".type-option").forEach(option => {
+        option.onclick = () => switchChatType(option.dataset.type);
+    });
+
+    if (participantSearchElement) {
+        participantSearchElement.oninput = (e) => {
+            const query = e.target.value.trim();
+            if (currentModalType === "direct") {
+                if (query.length < 3) {
+                    users = [];
+                    renderUserList();
+                    return;
+                }
+                searchUsers(query);
+            }
+        };
+    }
+
+    if (groupMemberSearch) {
+        groupMemberSearch.oninput = (e) => {
+            const query = e.target.value.trim();
+            searchGroupMembers(query);
+        };
+    }
+
+    if (groupNameInput) {
+        groupNameInput.oninput = updateCreateButton;
+    }
 
     document.getElementById("backButton").onclick = () => {
         currentChatId = null;
@@ -613,16 +838,11 @@ function initEventListeners() {
         } else {
             noChatSelectedElement.style.display = "flex";
             chatContainerElement.style.display = "none";
-
         }
         renderChatList();
     };
 
     document.getElementById("sendButton").onclick = sendMessage;
-
-    // document.getElementById("refreshButton").onclick = async () => {
-    //     await initialSync();
-    // };
 
     messageInputElement.addEventListener("keydown", (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
@@ -631,6 +851,7 @@ function initEventListeners() {
         }
     });
 }
+
 
 async function init() {
     const token = localStorage.getItem("sessionToken");

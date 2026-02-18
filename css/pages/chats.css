@@ -308,6 +308,36 @@ body {
     margin: 0;
 }
 
+.chat-type-selector {
+    display: flex; gap: 12px; margin-bottom: 16px; padding: 12px; 
+    background: #f8f9fa; border-radius: 12px;
+}
+.type-option {
+    flex: 1; padding: 12px; text-align: center; cursor: pointer;
+    border-radius: 8px; transition: all 0.2s; border: 2px solid transparent;
+}
+.type-option.active {
+    background: #667eea; color: white; border-color: #667eea;
+}
+.type-option input { display: none; }
+.selected-members {
+    margin-top: 12px; padding: 12px; background: #f8f9fa;
+    border-radius: 12px; max-height: 120px; overflow-y: auto;
+}
+.selected-member {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: white; padding: 6px 10px; border-radius: 16px;
+    margin: 4px; font-size: 0.9em; border: 1px solid #e9ecef;
+}
+.remove-member { 
+    color: #dc3545; cursor: pointer; font-weight: bold; font-size: 1.1em;
+}
+.button-primary {
+    padding: 12px 24px; background: #667eea; color: white; border: none;
+    border-radius: 8px; cursor: pointer; font-weight: 500;
+}
+.button-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .close-button {
     background: none;
     border: none;
