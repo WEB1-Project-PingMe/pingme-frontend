@@ -16,7 +16,7 @@ async function apiCall(endpoint, options = {}) {
 
         if (response.status === 401) {
             localStorage.removeItem("sessionToken");
-            window.location.href = "../auth/login.html";
+            window.news.href = "../auth/login.html";
             throw new Error("Session expired");
         }
 
@@ -33,35 +33,34 @@ function isMobile() {
     return output;
 }
 
-function showWeatherListMobile() {
+function showNewsListMobile() {
     if (!isMobile()) return;
-    document.querySelector(".location-sidebar").classList.add("mobile-show-sidebar");
-    document.querySelector(".location-main").classList.remove("mobile-show-location");
-    //const inputContainer = document.getElementById("chatInputContainer");
-    //if (inputContainer) inputContainer.style.display = "flex";
+    document.querySelector(".news-sidebar").classList.add("mobile-show-sidebar");
+    document.querySelector(".news-main").classList.remove("mobile-show-news");
+    if (inputContainer) inputContainer.style.display = "flex";
 }
 
-function showWeatherMobile() {
+function showNewsMobile() {
     if (!isMobile()) return;
-    document.querySelector(".location-sidebar").classList.remove("mobile-show-sidebar");
-    document.querySelector(".location-main").classList.add("mobile-show-location");
+    document.querySelector(".news-sidebar").classList.remove("mobile-show-sidebar");
+    document.querySelector(".news-main").classList.add("mobile-show-news");
 }
 
 function applyLayoutForViewport() {
-    const sidebar = document.querySelector(".location-sidebar");
-    const main = document.querySelector(".location-main");
+    const sidebar = document.querySelector(".news-sidebar");
+    const main = document.querySelector(".news-main");
 
     if (isMobile()) {
         if (!currentLocationId) {
             sidebar.classList.add("mobile-show-sidebar");
-            main.classList.remove("mobile-show-location");
+            main.classList.remove("mobile-show-news");
         } else {
             sidebar.classList.remove("mobile-show-sidebar");
-            main.classList.add("mobile-show-location");
+            main.classList.add("mobile-show-news");
         }
     } else {
         sidebar.classList.remove("mobile-show-sidebar");
-        main.classList.remove("mobile-show-location");
+        main.classList.remove("mobile-show-news");
         main.style.display = "flex";
     }
 }
@@ -83,11 +82,11 @@ async function init() {
             .then(res => res.json())
             .then(data => {
                 if (!data.loggedIn) {
-                    window.location.href = "../auth/login.html";
+                    window.news.href = "../auth/login.html";
                 }
             });
     } catch (error) {
-        window.location.href = "../auth/login.html";
+        window.news.href = "../auth/login.html";
     }
     // await initDB();
     document.getElementById("authOverlay").style.display = "none";
