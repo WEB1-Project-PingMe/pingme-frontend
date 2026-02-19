@@ -28,6 +28,7 @@ let currentModalType = 'direct';
 let users = [];
 let chats = [];
 let currentChatId = null;
+let currentChatType = null;
 let db;
 let pusher = new Pusher("d8e5b208992682efa26f", {
     cluster: "eu"
@@ -165,29 +166,32 @@ async function getChats() {
         }));
         chats = chats.concat(groupChats);
     }
-    console.log(chats)
     storeChats();
     return chats;
 }
 
-async function storeNewConversation(conversationId) {
-    const result = await apiCall(`/conversations/conversation/${conversationId}`);
-    if (result.ok && result.data.success) {
-        const conversation = result.data.conversation;
-        const chat = {
-            id: conversation._id,
-            name: conversation.participants[0]?.name || conversation.participants[0]?.userTag || "Unknown Chat",
-            timestamp: conversation.lastMessageAt || conversation.updatedAt,
-            lastMessageText: conversation.lastMessageText,
-            participants: conversation.participants
-        };
-        const tx = db.transaction([chatsStoreName], "readwrite");
-        const store = tx.objectStore(chatsStoreName);
-        store.put(chat);
+async function storeNewChat(chatId, type) {
+    if (type === "conversation") {
+        const result = await apiCall(`/conversations/conversation/${chatId}`);
+        if (result.ok && result.data.success) {
+            const conversation = result.data.conversation;
+            const chat = {
+                id: conversation._id,
+                name: conversation.participants[0]?.name || conversation.participants[0]?.userTag || "Unknown Chat",
+                timestamp: conversation.lastMessageAt || conversation.updatedAt,
+                lastMessageText: conversation.lastMessageText,
+                participants: conversation.participants
+            };
+            const tx = db.transaction([chatsStoreName], "readwrite");
+            const store = tx.objectStore(chatsStoreName);
+            store.put(chat);
+        }
+    } else {
+        
     }
 }
 
-async function getMessages(conversationId, limit = 50, before = null) {
+async function getConversationMessages(conversationId, limit = 50, before = null) {
     if (!validateChatId(conversationId, "getMessages")) return [];
 
     const params = new URLSearchParams({ conversationId, limit });
@@ -201,7 +205,7 @@ async function getMessages(conversationId, limit = 50, before = null) {
     return [];
 }
 
-async function sendMessageToRemote(conversationId, text) {
+async function sendConversationMessageToRemote(conversationId, text) {
     if (!validateChatId(conversationId, "sendMessage")) return false;
 
     const senderId = localStorage.getItem("currentUserId");
@@ -211,6 +215,38 @@ async function sendMessageToRemote(conversationId, text) {
     });
     return result.ok;
 }
+
+async function getGroupMessages(groupId, limit = 50, before = null) {
+    if (!validateChatId(groupId, "getMessages")) return [];
+
+    const params = new URLSearchParams();
+    if (limit) params.append("limit", limit);
+    if (before) params.append("before", before);
+
+    const url = `/groups/${groupId}/messages${params.toString() ? `?${params}` : ''}`;
+    const result = await apiCall(url);
+
+    if (result.ok) {
+        storeMessagesForChat(groupId, result.data || []);
+        return result.data || [];
+    }
+    return [];
+}
+
+async function sendGroupMessageToRemote(groupId, text) {
+    if (!validateChatId(groupId, "sendMessage")) return false;
+
+    const senderId = localStorage.getItem("currentUserId");
+    const result = await apiCall(`/groups/${groupId}/messages`, {
+        method: "POST",
+        body: JSON.stringify({
+            senderId,
+            text
+        })
+    });
+    return result.ok;
+}
+
 
 function storeChats() {
     const tx = db.transaction([chatsStoreName], "readwrite");
@@ -244,7 +280,12 @@ async function initialSync() {
     await getChats();
 
     for (const chat of chats) {
-        await getMessages(chat.id, 50); // Only recent 50 messages
+        if (chat.type === "group") {
+            await getGroupMessages(chat.id, 50); // Only recent 50 messages
+        } else {
+            await getConversationMessages(chat.id, 50); // Only recent 50 messages
+        }
+
     }
 
     renderChatList();
@@ -321,6 +362,7 @@ function selectChat(chatId) {
     if (!validateChatId(chatId, "selectChat")) return;
 
     currentChatId = chatId;
+    currentChatType = chats.find(item => item.id === chatId).type;
     const chat = chats.find(c => c.id === chatId);
     if (!chat) return;
 
@@ -405,8 +447,12 @@ async function sendMessage() {
     messageInputElement.disabled = true;
     sendButton.disabled = true;
     //sendButton.textContent = "Sending...";
-
-    const success = await sendMessageToRemote(currentChatId, text);
+    let success = false;
+    if (currentChatType === "conversation") {
+        success = await sendConversationMessageToRemote(currentChatId, text);
+    } else {
+        success = await sendGroupMessageToRemote(currentChatId, text);
+    }
 
     messageInputElement.value = "";
 
@@ -423,7 +469,7 @@ function switchChatType(type) {
     currentModalType = type;
     document.querySelectorAll('.type-option').forEach(opt => opt.classList.remove('active'));
     document.querySelector(`[data-type="${type}"]`).classList.add('active');
-    
+
     if (type === 'direct') {
         modalTitleElement.textContent = 'New Chat';
         directContent.style.display = 'block';
@@ -460,7 +506,7 @@ async function searchGroupMembers(query) {
     const result = await apiCall(`/users/search/${encodeURIComponent(query)}`);
     if (result.ok) {
         const currentUserId = localStorage.getItem("currentUserId");
-        users = (result.data.users || []).filter(u => 
+        users = (result.data.users || []).filter(u =>
             u._id !== currentUserId && !selectedGroupMembers.includes(u._id)
         );
         renderGroupMemberList();
@@ -497,7 +543,7 @@ function renderGroupMemberList() {
             </div>
         </div>
     `).join("");
-    
+
     document.querySelectorAll("#groupMemberList .user-item").forEach(item => {
         item.onclick = () => toggleGroupMember(item.dataset.userId, item);
     });
@@ -527,7 +573,7 @@ function renderSelectedMembers() {
             </span>
         `;
     }).join("");
-    
+
     // Add remove handlers
     selectedMembersElement.querySelectorAll('.remove-member').forEach(span => {
         span.onclick = (e) => {
@@ -541,7 +587,7 @@ function renderSelectedMembers() {
 }
 
 function updateCreateButton() {
-    const hasContent = currentModalType === 'direct' || 
+    const hasContent = currentModalType === 'direct' ||
         (groupNameInput.value.trim() && selectedGroupMembers.length >= 1);
     createChatButton.disabled = !hasContent;
 }
@@ -712,22 +758,22 @@ async function createNewConversation(participantId) {
 async function createNewGroup() {
     const name = groupNameInput.value.trim();
     if (!name || selectedGroupMembers.length < 1) return;
-    
+
     // Creator (current user) becomes admin
     const currentUserId = localStorage.getItem("currentUserId");
     const adminIds = [currentUserId];
 
     selectedGroupMembers.push(currentUserId);
-    
+
     const result = await apiCall("/groups", {
         method: "POST",
-        body: JSON.stringify({ 
+        body: JSON.stringify({
             name: name,
             adminIds: adminIds,
-            memberIds: selectedGroupMembers 
+            memberIds: selectedGroupMembers
         })
     });
-    
+
     if (result.ok && result.data) {
         const newGroupId = result.data._Id;
         closeModal();
@@ -758,10 +804,10 @@ function subscribeToChannels() {
         pusher.unsubscribe(channel.name);
     });
 
-    const conversationChannel = pusher.subscribe("conversation");
-    conversationChannel.bind("new-conversation", async (data) => {
-        await storeNewConversation(data.message.conversationId);
-        subscribeToNewChat(data.message.conversationId);
+    const conversationChannel = pusher.subscribe("chat");
+    conversationChannel.bind("new-chat", async (data) => {
+        await storeNewConversation(data.message.chatId);
+        subscribeToNewChat(data.message.chatId);
     });
 
     chats.forEach(chat => {
@@ -772,7 +818,7 @@ function subscribeToChannels() {
 function subscribeToChat(chatId) {
     if (!validateChatId(chatId, "subscribeToChat")) return;
 
-    const channelName = `conversation-${chatId}`;
+    const channelName = `chat-${chatId}`;
 
     // Don't subscribe twice
     if (pusher.channel(channelName)) {
