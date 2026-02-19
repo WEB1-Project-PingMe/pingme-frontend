@@ -96,6 +96,11 @@ async function initDB() {
                 const messagesStore = db.createObjectStore(messagesStoreName, { keyPath: "id" });
                 messagesStore.createIndex("chatId", "chatId", { unique: false });
             }
+
+            if (!db.objectStoreNames.contains('usernames')) {
+                const usernamesStore = db.createObjectStore('usernames', { keyPath: "userId" });
+                usernamesStore.createIndex("name", "name", { unique: false });
+            }
         };
     });
 }
@@ -187,7 +192,7 @@ async function storeNewChat(chatId, type) {
             store.put(chat);
         }
     } else {
-        
+
     }
 }
 
@@ -272,6 +277,48 @@ function storeMessage(chatId, message) {
     const tx = db.transaction([messagesStoreName], "readwrite");
     const store = tx.objectStore(messagesStoreName);
     store.put(messageData);
+}
+
+async function populateUsernames(messages) {
+    const uniqueSenderIds = [...new Set(messages.map(msg => msg.senderId))];
+    const currentUserId = localStorage.getItem("currentUserId");
+    
+    for (const userId of uniqueSenderIds) {
+        if (userId === currentUserId) continue;
+        
+        const existing = await new Promise(resolve => {
+            const tx = db.transaction("usernames", "readonly");
+            const store = tx.objectStore("usernames");
+            const request = store.get(userId);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => resolve(null);
+        });
+        
+        if (!existing) {
+            const result = await apiCall(`/users/${userId}`);
+            
+            if (result.ok && result.data?.user) {
+                await new Promise(resolve => {
+                    const tx = db.transaction("usernames", "readwrite");
+                    const store = tx.objectStore("usernames");
+                    store.put({ 
+                        userId, 
+                        name: result.data.user.name,
+                        tag: result.data.user.tag 
+                    });
+                    tx.oncomplete = resolve;
+                    tx.onerror = () => resolve();
+                });
+            } else {
+                await new Promise(resolve => {
+                    const tx = db.transaction("usernames", "readwrite");
+                    const store = tx.objectStore("usernames");
+                    store.put({ userId, name: "User" });
+                    tx.oncomplete = resolve;
+                });
+            }
+        }
+    }
 }
 
 async function initialSync() {
@@ -385,28 +432,59 @@ function selectChat(chatId) {
 async function loadAndRenderMessages() {
     if (!currentChatId) return;
     const messages = await loadMessagesForChat(currentChatId);
-    renderMessages(messages);
+
+    if (currentChatType === "group") {
+        await populateUsernames(messages);
+    }
+
+    renderMessages(messages, currentChatType);
 }
 
-function renderMessages(messages) {
+async function renderMessages(messages, chatType) {
     messages = [...messages].reverse();
+    
+    const usernameCache = new Map();
+    if (chatType === "group") {
+        const uniqueSenderIds = [...new Set(
+            messages
+                .filter(msg => msg.senderId !== localStorage.getItem("currentUserId"))
+                .map(msg => msg.senderId)
+        )];
+        
+        const tx = db.transaction("usernames", "readonly");
+        const store = tx.objectStore("usernames");
+        
+        for (const userId of uniqueSenderIds) {
+            const username = await new Promise(resolve => {
+                const request = store.get(userId);
+                request.onsuccess = () => resolve(request.result?.name || "Unknown");
+            });
+            usernameCache.set(userId, username);
+        }
+    }
 
     messagesElement.innerHTML = messages.slice(0, 50).map(msg => {
         const time = new Date(msg.createdAt || msg.timestamp).toLocaleTimeString([], {
             hour: "2-digit", minute: "2-digit", hour12: false
         });
         const isSent = msg.senderId === localStorage.getItem("currentUserId");
+        const showSenderName = chatType === "group" && !isSent;
+        const senderName = usernameCache.get(msg.senderId) || "Unknown";
 
         return `
-            <div class="message ${isSent ? "sent" : "received"}">
-                ${escapeHtml(msg.text)}
-                <div class="message-time">${time}</div>
+            <div class="message-wrapper ${isSent ? "sent-wrapper" : "received-wrapper"}">
+                ${showSenderName ? `<div class="sender-name">${escapeHtml(senderName)}</div>` : ''}
+                <div class="message ${isSent ? "sent" : "received"}">
+                    ${escapeHtml(msg.text)}
+                    <div class="message-time">${time}</div>
+                </div>
             </div>
         `;
     }).join("");
 
     messagesElement.scrollTop = messagesElement.scrollHeight;
 }
+
 
 const formatTime = (timestamp) => {
     return new Date(timestamp).toLocaleTimeString([], {
