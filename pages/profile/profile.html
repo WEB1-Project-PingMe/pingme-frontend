@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>PingMe Profile</title>
+    <link rel="stylesheet" href="../../css/pages/profile.css" />
+</head>
+
+<body>
+    <div id="authOverlay" class="auth-overlay">
+        <div class="auth-spinner"></div>
+        <p>Checking authentication...</p>
+    </div>
+
+    <div class="profile-container">
+        <div class="profile-header">
+            <h1>Profile</h1>
+            <button id="editProfileBtn" class="edit-button">Logout</button>
+        </div>
+
+        <div id="profileContent" class="profile-content">
+            <div class="profile-avatar">
+                <div id="avatar" class="avatar-placeholder">U</div>
+            </div>
+
+            <div class="profile-details">
+                <div class="detail-row">
+                    <label>Username</label>
+                    <span id="username">Loading...</span>
+                </div>
+                <div class="detail-row">
+                    <label>User Tag</label>
+                    <span id="usertag">Loading...</span>
+                </div>
+                <div class="detail-row">
+                    <label>Email</label>
+                    <span id="email">Loading...</span>
+                </div>
+            </div>
+
+            <div style="position: relative; display: inline-block;">
+                <button id="deleteAccountBtn" class="delete-button">Delete Account</button>
+
+                <div id="deleteLoading" class="loading-overlay" style="display: none;">
+                    <div class="loading-spinner-small"></div>
+                    <span>Deleting...</span>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="profile-footer">
+            <nav class="bottom-nav">
+                <a href="../chats/chats.html" class="nav-item" data-page="chats">
+                    <img src="../../assets/message-circle.svg" alt="Chats" class="nav-icon">
+                    <span class="nav-label">Chats</span>
+                </a>
+                <a href="../news/news.html" class="nav-item" data-page="news">
+                    <img src="../../assets/file-text.svg" class="nav-icon" alt="News">
+                    <span class="nav-label">News</span>
+                </a>
+                <a href="../weather/weather.html" class="nav-item" data-page="weather">
+                    <img src="../../assets/sun.svg" class="nav-icon" alt="Weather">
+                    <span class="nav-label">Weather</span>
+                </a>
+                <a class="nav-item active" data-page="profile">
+                    <img src="../../assets/user.svg" class="nav-icon" alt="Profile">
+                    <span class="nav-label">Profile</span>
+                </a>
+            </nav>
+        </div>
+    </div>
+
+    <script src="../../js/pages/profile.js"></script>
+</body>
+
+</html>

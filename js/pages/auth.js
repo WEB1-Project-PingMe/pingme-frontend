@@ -54,54 +54,6 @@ async function loginUser(user) {
   return data;
 }
 
-async function deleteAccount() {
-  const token = getToken();
-  if (!token) {
-    alert("Please log in first");
-    return;
-  }
-
-  // Show loading (if delete page has loading element)
-  const loadingEl = document.getElementById("loading");
-  const deleteBtn = document.querySelector(".btn-danger");
-
-  if (loadingEl) loadingEl.style.display = "block";
-  if (deleteBtn) deleteBtn.style.display = "none";
-
-  try {
-    const response = await fetch(`${BACKEND_URL}/auth/account`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
-      body: JSON.stringify({ sessionToken: token })
-    });
-
-    const data = await response.json();
-
-    if (response.ok && data.message === "deleted successfully") {
-      // Clear token and redirect
-      localStorage.removeItem("token");
-      sessionStorage.removeItem("token");
-      alert("Account deleted successfully. Goodbye!");
-      window.location.href = "/";
-    } else if (data.message === "user doesn't exist") {
-      alert("User not found");
-      window.location.href = "/";
-    } else {
-      throw new Error(data.error || "Delete failed");
-    }
-  } catch (error) {
-    console.error("Delete error:", error);
-    alert("Error deleting account: " + error.message);
-  } finally {
-    // Hide loading
-    if (loadingEl) loadingEl.style.display = "none";
-    if (deleteBtn) deleteBtn.style.display = "inline-block";
-  }
-}
-
 function initAuth() {
   const registerForm = document.getElementById("registerForm");
   if (registerForm) {
