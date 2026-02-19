@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -13,6 +12,7 @@
         <div class="auth-spinner"></div>
         <p>Checking authentication...</p>
     </div>
+    
     <div class="app-container">
         <!-- Sidebar = Saved locations -->
         <div class="location-sidebar">
@@ -22,12 +22,13 @@
                     <img src="../../assets/plus.svg" alt="Add" width="16" height="16">
                 </button>
             </div>
-            <div id="locationList" class="location-list"></div>
-
+            <div id="locationList" class="location-list">
+                <!-- Locations populated by JS -->
+            </div>
             <div class="sidebar-footer">
                 <nav class="bottom-menu">
                     <a href="../chats/chats.html" class="menu-item" data-page="chats">
-                        <img src="../../assets/message-circle.svg" alt="Profile" class="menu-icon">
+                        <img src="../../assets/message-circle.svg" alt="Chats" class="menu-icon">
                         <span class="label">Chats</span>
                     </a>
                     <a href="../news/news.html" class="menu-item" data-page="news">
@@ -59,15 +60,61 @@
                         <img src="../../assets/arrow-left.svg" alt="Back" width="16" height="16">
                     </button>
                     <div class="location-info">
-                        <h2 id="locationTitle">LOADING??</h2>
+                        <h2 id="locationTitle">LOADING...</h2>
                         <span id="lastUpdated"></span>
                     </div>
-                    <button id="refreshButton" class="new-location-button">Update</button>
+                    <button id="refreshButton" class="refresh-button">
+                        <img src="../../assets/refresh.svg" alt="Refresh" width="20" height="20">
+                    </button>
                 </div>
-                <div id="weatherContent" class="messages"></div>
+
+                <div id="weatherContent" class="weather-content">
+                    <!-- Current Weather -->
+                    <div id="currentWeather" class="weather-current-section">
+                        <div class="weather-card">
+                            <div class="current-weather">
+                                <div class="temp-display">
+                                    <span id="currentTemp">--</span>
+                                    <span id="currentUnit">°C</span>
+                                </div>
+                                <div id="currentCondition">--</div>
+                            </div>
+                            <div class="weather-icon">
+                                <img id="currentIcon" src="" alt="Weather icon">
+                            </div>
+                            <div class="current-details">
+                                <div class="detail-item">
+                                    <span class="detail-value" id="feelsLike">--</span>
+                                    <span class="detail-label">Feels like</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-value" id="humidity">--</span>
+                                    <span class="detail-label">Humidity</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-value" id="windSpeed">--</span>
+                                    <span class="detail-label">Wind</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-value" id="precipitation">--</span>
+                                    <span class="detail-label">Precip</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Forecast Section -->
+                    <div id="forecastSection" class="weather-forecast-section">
+                        <h3 class="forecast-title">24h Forecast</h3>
+                        <div id="forecastList" class="forecast-list">
+                            <!-- Forecast items populated by JS -->
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
+        <!-- Add Location Modal -->
         <div id="newLocationModal" class="modal-overlay" style="display: none;">
             <div class="modal-content">
                 <div class="modal-header">
@@ -84,7 +131,7 @@
             </div>
         </div>
     </div>
+
     <script src="../../js/pages/weather.js"></script>
 </body>
-
 </html>
