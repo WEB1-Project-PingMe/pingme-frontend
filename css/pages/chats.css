@@ -160,6 +160,10 @@ body {
     justify-content: center;
 }
 
+.back-button img {
+  vertical-align: middle;
+}
+
 .chat-info h2 {
     color: #333;
     font-size: 1.2em;
@@ -288,12 +292,17 @@ body {
     align-items: center;
     justify-content: center;
 }
+#sendButton img {
+    filter: brightness(0) invert(1);
+    vertical-align: middle;
+}
 
-#sendButton::before {
+
+/* #sendButton::before {
     content: '→';
     font-size: 1.4em;
     font-weight: bold;
-}
+} */
 
 #sendButton:hover {
     transform: scale(1.05);
@@ -384,6 +393,10 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.close-button img {
+  vertical-align: middle;
 }
 
 .close-button:hover {

@@ -19,7 +19,9 @@
         <div class="chat-sidebar">
             <div class="sidebar-header">
                 <h2>Chats</h2>
-                <button id="newChatButton" class="new-chat-button">+</button>
+                <button id="newChatButton" class="new-chat-button">
+                    <img src="../../assets/plus.svg" alt="Close" width="16" height="16">
+                </button>
             </div>
             <div id="chatList" class="chat-list"></div>
         </div>
@@ -33,7 +35,9 @@
 
             <div id="chatContainer" class="chat-container" style="display: none;">
                 <div class="chat-header">
-                    <button id="backButton" class="back-button">←</button>
+                    <button id="backButton" class="back-button">
+                        <img src="../../assets/arrow-left.svg" alt="Close" width="16" height="16">
+                    </button>
                     <div class="chat-info">
                         <h2 id="chatTitle"></h2>
                         <span id="chatLastTime"></span>
@@ -42,7 +46,9 @@
                 <div id="messages" class="messages"></div>
                 <div class="chat-input-container" id="chatInputContainer">
                     <input type="text" id="messageInput" placeholder="Type a message..." maxlength="500">
-                    <button id="sendButton"></button>
+                    <button id="sendButton">
+                        <img src="../../assets/send.svg" alt="Close" width="16" height="16">
+                    </button>
                 </div>
             </div>
         </div>
@@ -52,7 +58,9 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h3 id="modalTitle">New Chat</h3>
-                    <button id="closeModalButton" class="close-button">×</button>
+                    <button id="closeModalButton" class="close-button">
+                        <img src="../../assets/x.svg" alt="Close" width="16" height="16">
+                    </button>
                 </div>
                 <div class="modal-body">
                     <!-- Type selector -->
