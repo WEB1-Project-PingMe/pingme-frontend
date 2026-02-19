@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>PingMe Weather</title>
+    <link rel="stylesheet" href="../../css/pages/weather.css" />
+</head>
+
+<body>
+    <div id="authOverlay" class="auth-overlay">
+        <div class="auth-spinner"></div>
+        <p>Checking authentication...</p>
+    </div>
+    <div class="app-container">
+        <!-- Sidebar = Saved locations -->
+        <div class="location-sidebar">
+            <div class="sidebar-header">
+                <h2>Locations</h2>
+                <button id="newLocationButton" class="new-location-button">
+                    <img src="../../assets/plus.svg" alt="Add" width="16" height="16">
+                </button>
+            </div>
+            <div id="locationList" class="location-list"></div>
+
+            <div class="sidebar-footer">
+                <nav class="bottom-menu">
+                    <a href="../chats/chats.html" class="menu-item" data-page="chats">
+                        <img src="../../assets/message-circle.svg" alt="Profile" class="menu-icon">
+                        <span class="label">Chats</span>
+                    </a>
+                    <a href="../news/news.html" class="menu-item" data-page="news">
+                        <img src="../../assets/file-text.svg" class="menu-icon" alt="News">
+                        <span class="label">News</span>
+                    </a>
+                    <a class="menu-item active" data-page="weather">
+                        <img src="../../assets/sun.svg" class="menu-icon" alt="Weather">
+                        <span class="label">Weather</span>
+                    </a>
+                    <a href="../profile/profile.html" class="menu-item" data-page="profile">
+                        <img src="../../assets/user.svg" class="menu-icon" alt="Profile">
+                        <span class="label">Profile</span>
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Main area -->
+        <div class="location-main">
+            <div id="noLocationSelected" class="no-location-selected">
+                <h3>No location selected</h3>
+                <p>Select or add a location to view weather</p>
+            </div>
+
+            <div id="weatherContainer" class="location-container" style="display: none;">
+                <div class="location-header">
+                    <button id="backButton" class="back-button">
+                        <img src="../../assets/arrow-left.svg" alt="Back" width="16" height="16">
+                    </button>
+                    <div class="location-info">
+                        <h2 id="locationTitle">LOADING??</h2>
+                        <span id="lastUpdated"></span>
+                    </div>
+                    <button id="refreshButton" class="new-location-button">Update</button>
+                </div>
+                <div id="weatherContent" class="messages"></div>
+            </div>
+        </div>
+
+        <div id="newLocationModal" class="modal-overlay" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Add Location</h3>
+                    <button id="closeModal" class="close-button">✕</button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="locationInput" class="search-input" placeholder="Enter city name...">
+                </div>
+                <div class="modal-footer">
+                    <button id="saveLocationBtn" class="button-primary" disabled>Save Location</button>
+                    <button id="cancelLocationBtn" class="button-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="../../js/pages/weather.js"></script>
+</body>
+
+</html>

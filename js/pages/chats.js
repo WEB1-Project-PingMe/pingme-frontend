@@ -142,6 +142,7 @@ async function getConversations() {
 }
 
 async function getChats() {
+    chats = [];
     const [convResult, groupResult] = await Promise.all([
         apiCall("/conversations"),
         apiCall("/groups")
@@ -282,10 +283,10 @@ function storeMessage(chatId, message) {
 async function populateUsernames(messages) {
     const uniqueSenderIds = [...new Set(messages.map(msg => msg.senderId))];
     const currentUserId = localStorage.getItem("currentUserId");
-    
+
     for (const userId of uniqueSenderIds) {
         if (userId === currentUserId) continue;
-        
+
         const existing = await new Promise(resolve => {
             const tx = db.transaction("usernames", "readonly");
             const store = tx.objectStore("usernames");
@@ -293,18 +294,18 @@ async function populateUsernames(messages) {
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => resolve(null);
         });
-        
+
         if (!existing) {
             const result = await apiCall(`/users/${userId}`);
-            
+
             if (result.ok && result.data?.user) {
                 await new Promise(resolve => {
                     const tx = db.transaction("usernames", "readwrite");
                     const store = tx.objectStore("usernames");
-                    store.put({ 
-                        userId, 
+                    store.put({
+                        userId,
                         name: result.data.user.name,
-                        tag: result.data.user.tag 
+                        tag: result.data.user.tag
                     });
                     tx.oncomplete = resolve;
                     tx.onerror = () => resolve();
@@ -351,7 +352,7 @@ async function appendMessageLocally(chatId, message) {
     }
 
     if (currentChatId === chatId) {
-        appendNewMessage(message);
+        await appendNewMessage(message, currentChatType);
     }
 }
 
@@ -442,7 +443,7 @@ async function loadAndRenderMessages() {
 
 async function renderMessages(messages, chatType) {
     messages = [...messages].reverse();
-    
+
     const usernameCache = new Map();
     if (chatType === "group") {
         const uniqueSenderIds = [...new Set(
@@ -450,10 +451,10 @@ async function renderMessages(messages, chatType) {
                 .filter(msg => msg.senderId !== localStorage.getItem("currentUserId"))
                 .map(msg => msg.senderId)
         )];
-        
+
         const tx = db.transaction("usernames", "readonly");
         const store = tx.objectStore("usernames");
-        
+
         for (const userId of uniqueSenderIds) {
             const username = await new Promise(resolve => {
                 const request = store.get(userId);
@@ -503,14 +504,44 @@ const escapeHtml = (str) => {
         .replace(/'/g, "&#039;");
 };
 
-function appendNewMessage(msg) {
+async function appendNewMessage(msg, chatType) {
     const time = formatTime(msg.createdAt || msg.timestamp);
     const isSent = msg.senderId === localStorage.getItem("currentUserId");
 
+    let senderName = "";
+
+    if (chatType === "group" && !isSent && db) {
+        try {
+            const tx = db.transaction("usernames", "readonly");
+            const store = tx.objectStore("usernames");
+            senderName = await new Promise((resolve) => {
+                const request = store.get(msg.senderId);
+                request.onsuccess = () => resolve(request.result?.name || "Unknown");
+                request.onerror = () => resolve("Unknown");
+            });
+        } catch (error) {
+            console.warn("Could not fetch username:", error);
+            const messages = await loadMessagesForChat(currentChatId);
+            await populateUsernames(messages);
+            const tx = db.transaction("usernames", "readonly");
+            const store = tx.objectStore("usernames");
+            senderName = await new Promise((resolve) => {
+                const request = store.get(msg.senderId);
+                request.onsuccess = () => resolve(request.result?.name || "Unknown");
+                request.onerror = () => resolve("Unknown");
+            });
+        }
+    }
+
     const msgHtml = `
-        <div class="message ${isSent ? "sent" : "received"}">
-            ${escapeHtml(msg.text)}
-            <div class="message-time">${time}</div>
+        <div class="message-wrapper ${isSent ? "sent-wrapper" : "received-wrapper"}">
+            ${chatType === "group" && !isSent
+            ? `<div class="sender-name">${escapeHtml(senderName)}</div>`
+            : ""}
+            <div class="message ${isSent ? "sent" : "received"}">
+                ${escapeHtml(msg.text)}
+                <div class="message-time">${time}</div>
+            </div>
         </div>
     `;
 
@@ -996,9 +1027,11 @@ async function init() {
         window.location.href = "../auth/login.html";
     }
     await initDB();
-    await initialSync();
-
+    await loadChats();
+    renderChatList();
     document.getElementById("authOverlay").style.display = "none";
+
+    await initialSync();
 
     renderChatList();
 
