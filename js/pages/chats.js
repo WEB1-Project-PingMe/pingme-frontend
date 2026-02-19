@@ -746,38 +746,48 @@ window.addEventListener("resize", applyLayoutForViewport);
 document.addEventListener("DOMContentLoaded", applyLayoutForViewport);
 
 function initKeyboardHandling() {
-    let keyboardHeight = 0;
+    const inputContainer = document.getElementById("chatInputContainer");
+    const messagesElement = document.querySelector('.messages');
+    let initialHeight = window.innerHeight;
 
-    if (window.visualViewport) {
-        const inputContainer = document.getElementById("chatInputContainer");
-
+    if (window.visualViewport && currentChatId) {
         window.visualViewport.addEventListener("resize", () => {
-            if (!currentChatId || !inputContainer) return;
+            if (!currentChatId || !inputContainer || !messagesElement) return;
 
             const visibleHeight = window.visualViewport.height;
-            const fullHeight = window.innerHeight;
-            keyboardHeight = fullHeight - visibleHeight;
-
-            const bottomOffset = keyboardHeight > 50 ? keyboardHeight : "env(safe-area-inset-bottom)";
-            inputContainer.style.bottom = typeof bottomOffset === "number" ? `${bottomOffset}px` : bottomOffset;
-
+            const keyboardHeight = window.innerHeight - visibleHeight;
+            
+            const bottomOffset = keyboardHeight > 50 ? `${keyboardHeight}px` : "env(safe-area-inset-bottom)";
+            inputContainer.style.bottom = bottomOffset;
+            
+            const chatMain = document.querySelector(".chat-main");
+            if (chatMain) {
+                chatMain.style.height = `${visibleHeight}px`;
+            }
+            
             setTimeout(() => {
                 messagesElement.scrollTop = messagesElement.scrollHeight;
             }, 50);
         });
 
         window.visualViewport.addEventListener("scroll", () => {
-            messagesElement.scrollTop = messagesElement.scrollHeight;
+            if (messagesElement) {
+                messagesElement.scrollTop = messagesElement.scrollHeight;
+            }
         });
     }
 
     if ("virtualKeyboard" in navigator && currentChatId) {
         navigator.virtualKeyboard.addEventListener("geometrychange", (e) => {
-            const inputContainer = document.getElementById("chatInputContainer");
-            if (!inputContainer) return;
+            if (!inputContainer || !messagesElement) return;
 
-            keyboardHeight = e.target.boundingRect.height;
+            const keyboardHeight = e.target.boundingRect.height;
             inputContainer.style.bottom = `${keyboardHeight}px`;
+
+            const chatMain = document.querySelector(".chat-main");
+            if (chatMain && window.visualViewport) {
+                chatMain.style.height = `${window.visualViewport.height}px`;
+            }
 
             setTimeout(() => {
                 messagesElement.scrollTop = messagesElement.scrollHeight;
@@ -785,32 +795,35 @@ function initKeyboardHandling() {
         });
     }
 
-    let initialHeight = window.innerHeight;
-    messageInputElement.addEventListener("focus", () => {
+    // Fallback for older browsers
+    messageInputElement?.addEventListener("focus", () => {
         initialHeight = window.innerHeight;
         setTimeout(() => {
-            messagesElement.scrollTop = messagesElement.scrollHeight;
+            if (messagesElement) messagesElement.scrollTop = messagesElement.scrollHeight;
         }, 300);
     });
 
     window.addEventListener("resize", () => {
-        if (!window.visualViewport) {
-            const inputContainer = document.getElementById("chatInputContainer");
+        if (!window.visualViewport && currentChatId) {
             const currentHeight = window.innerHeight;
             const kbHeight = initialHeight - currentHeight;
 
-            if (kbHeight > 100) {
-                inputContainer.style.bottom = `${kbHeight}px`;
-            } else {
-                inputContainer.style.bottom = "env(safe-area-inset-bottom)";
+            if (inputContainer) {
+                inputContainer.style.bottom = kbHeight > 100 ? `${kbHeight}px` : "env(safe-area-inset-bottom)";
+            }
+
+            const chatMain = document.querySelector(".chat-main");
+            if (chatMain) {
+                chatMain.style.height = `${currentHeight}px`;
+            }
+
+            if (messagesElement) {
+                messagesElement.scrollTop = messagesElement.scrollHeight;
             }
             initialHeight = currentHeight;
-
-            messagesElement.scrollTop = messagesElement.scrollHeight;
         }
     });
 }
-
 
 async function createNewConversation(participantId) {
     const result = await apiCall("/conversations", {
