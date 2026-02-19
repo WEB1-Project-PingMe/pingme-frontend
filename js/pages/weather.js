@@ -171,7 +171,7 @@ async function loadLocationWeather(locationId) {
     if (cachedData) {
         currentWeatherData = { current: cachedData.currentWeather };
         forecastData = { forecast: cachedData.forecast };
-        updateLastUpdated();
+        updateLastUpdated(cachedData.updatedAt);
         displayCurrentWeather();
         displayForecast();
         return true;
@@ -276,9 +276,9 @@ function displayForecast() {
     });
 }
 
-function updateLastUpdated() {
-    const now = new Date();
-    document.getElementById("lastUpdated").textContent = `Updated ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false})}`;
+function updateLastUpdated(timestamp) {
+    const updateTime = new Date(timestamp);
+    document.getElementById("lastUpdated").textContent = `Updated ${updateTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false})}`;
 }
 
 async function loadLocations() {
@@ -353,7 +353,7 @@ async function selectLocation(id, name, query) {
     const hasCachedData = await loadLocationWeather(id);
     
     if (!hasCachedData) {
-        updateLastUpdated();
+        updateLastUpdated(Date.now());
         await Promise.all([
             loadCurrentWeather(query, id, true),
             loadForecast(query, id, true)
@@ -441,7 +441,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.getElementById("refreshButton").disabled = true;
             await Promise.all([
                 loadCurrentWeather(currentLocationData.query, currentLocationData.id, true),
-                loadForecast(currentLocationData.query, currentLocationData.id, true)
+                loadForecast(currentLocationData.query, currentLocationData.id, true),
+                updateLastUpdated(Date.now())
             ]);
             document.getElementById("refreshButton").disabled = false;
         }
