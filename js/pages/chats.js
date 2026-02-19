@@ -370,11 +370,17 @@ function loadChats() {
 }
 
 function renderChatList() {
-    chatListElement.innerHTML = chats.map(chat => {
+    const sortedChats = chats.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+    chatListElement.innerHTML = sortedChats.map(chat => {
         const lastMsgTime = chat.timestamp;
-        const timeStr = lastMsgTime ? new Date(lastMsgTime).toLocaleTimeString([], {
-            hour: "2-digit", minute: "2-digit", hour12: false
-        }) : "Never";
+        const timeStr = lastMsgTime
+            ? new Date(lastMsgTime).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false
+            })
+            : "Never";
 
         return `
             <div class="chat-item ${currentChatId === chat.id ? "active" : ""}" data-chat-id="${chat.id}">
@@ -391,6 +397,7 @@ function renderChatList() {
         item.onclick = () => selectChat(item.dataset.chatId);
     });
 }
+
 
 async function loadMessagesForChat(chatId) {
     const tx = db.transaction([messagesStoreName]);
