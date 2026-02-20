@@ -65,12 +65,17 @@ function initAuth() {
         email: document.getElementById("email").value,
         password: document.getElementById("password").value
       };
-
+      showOverlay("Creating User...", true);
       try {
+
         const result = await createUser(user);
         console.log("User created:", result);
-        alert("Account created successfully!");
-        window.location.href = "login.html";
+        showOverlay("Account created successfully!", false, true);
+        const closeBtn = document.getElementById('overlay-close');
+        closeBtn.onclick = () => {
+          hideOverlay();
+          window.location.href = "login.html";
+        };
       } catch (error) {
         console.error("Error creating user:", error);
         alert("There was a problem creating your account.");
@@ -90,17 +95,25 @@ function initAuth() {
       };
 
       try {
+        showOverlay("Logging in...", true);
         const result = await loginUser(user);
         console.log("User logged in:", result);
         if (result.error) {
-          alert("Login failed: " + result.error);
+          hideOverlay();
+          showOverlay("Login failed: " + result.error, false, true);
           return;
         }
-        alert("Logged in successfully!");
-        window.location.href = "../chats/chats.html";
+        hideOverlay();
+        showOverlay("Logged in successfully!", false, true);
+        const closeBtn = document.getElementById('overlay-close');
+        closeBtn.onclick = () => {
+          hideOverlay();
+          window.location.href = "../chats/chats.html";
+        };
       } catch (error) {
         console.error("Error logging in:", error);
-        alert("There was a problem logging in.");
+        hideOverlay();
+        showOverlay("There was a problem logging in.", false, true);
       }
     });
   }
@@ -109,4 +122,20 @@ function initAuth() {
   if (deleteBtn) {
     deleteBtn.addEventListener("click", deleteAccount);
   }
+}
+
+function showOverlay(message, showSpinner = false, closable = false) {
+  const overlay = document.getElementById('overlay');
+  const msg = document.getElementById('overlay-message');
+  const spinner = document.getElementById('spinner');
+  const closeBtn = document.getElementById('overlay-close');
+  msg.textContent = message;
+  overlay.classList.remove('hidden');
+  spinner.classList.toggle('hidden', !showSpinner);
+  closeBtn.classList.toggle('hidden', !closable);
+}
+
+function hideOverlay() {
+  const overlay = document.getElementById('overlay');
+  overlay.classList.add('hidden');
 }

@@ -6,14 +6,57 @@ body {
   height: 100vh;
 }
 
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #ffffff;
+  color: #222222;
+}
+
+input, button, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  background-color: #f9f9f9;
+  color: #222222;
+  outline: transparent;
+  border: 1px solid #cccccc;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.link {
+  text-align: center;
+  color: #007BFF;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.default-btn:hover {
+  background-color: #0056b3;
+}
+
 main {
   /* slightly light background with border and padding than #121212 */
-  background-color: rgba(30, 30, 30, 0.85);
-  border: 3px solid rgba(51, 51, 51, 0.4);
+  background-color: #f5f5f5;
+  border: 3px solid #e0e0e0;
   padding: 32px 42px;
   border-radius: 24px;
   box-shadow:
-  0 0 50px 3px rgba(255, 255, 255, 0.1);
+  0 0 50px 3px rgba(0, 0, 0, 0.1);
 }
 
 #loginForm, #registerForm  {
@@ -72,16 +115,15 @@ main {
   margin-block-start: 20px;
 }
 
-
 /* End: updated styles (nishan-singh) */
 
 .warning {
-  background: #fee;
-  border: 2px solid #fcc;
+  background: #fff5f5;
+  border: 2px solid #ffd6d6;
   border-radius: 12px;
   padding: 1.5rem;
   margin: 1.5rem 0;
-  color: #c33;
+  color: #b22222;
 }
 
 .warning-icon {
@@ -134,7 +176,7 @@ main {
 
 .spinner {
   border: 2px solid #f3f3f3;
-  border-top: 2px solid #dc3545;
+  border-top: 2px solid #007BFF;
   border-radius: 50%;
   width: 24px;
   height: 24px;
@@ -150,4 +192,50 @@ main {
   100% {
     transform: rotate(360deg);
   }
+}
+
+.overlay {
+  position: fixed;
+  top: 0; left: 0;
+  right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.overlay-content {
+  background: white;
+  padding: 20px 30px;
+  border-radius: 8px;
+  text-align: center;
+  min-width: 250px;
+}
+
+.spinner {
+  border: 5px solid #e0e0e0;
+  border-top: 5px solid #3498db;
+  border-radius: 50%;
+  width: 40px; height: 40px;
+  margin: 0 auto 15px auto;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+#overlay-close {
+  margin-top: 15px;
+  padding: 8px 16px;
+  background: #3498db;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
 }
