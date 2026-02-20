@@ -387,7 +387,7 @@ function renderChatList() {
                 <div class="chat-avatar">${chat.name.charAt(0).toUpperCase()}</div>
                 <div class="chat-preview">
                     <div class="chat-name">${chat.name}</div>
-                    <div class="chat-last-message">${timeStr}: ${chat.lastMessageText || ''}</div>
+                    <div class="chat-last-message">${chat.lastMessageText ? `${timeStr}: ${chat.lastMessageText}` : ""}</div>
                 </div>
             </div>
         `;
