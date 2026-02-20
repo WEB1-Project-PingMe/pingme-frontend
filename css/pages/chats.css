@@ -18,26 +18,30 @@ body {
 }
 
 .chat-sidebar {
-    position: relative;
-    height: 100vh;
     width: 360px;
-    background: #f8f9fa;
-    border-right: 1px solid #e9ecef;
+    min-width: 360px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
     display: flex;
     flex-direction: column;
+    box-shadow: 2px 0 20px rgba(0, 0, 0, 0.1);
+    z-index: 100;
 }
 
 .sidebar-header {
-    padding: 20px;
-    border-bottom: 1px solid #e9ecef;
+    padding: 24px 20px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
 }
 
 .sidebar-header h2 {
-    color: #333;
-    font-size: 1.3em;
+    color: #1f2937;
+    font-size: 1.4em;
+    font-weight: 700;
 }
 
 .new-chat-button {
@@ -120,15 +124,9 @@ body {
 }
 
 .sidebar-footer {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: #fff;
-    border-top: 1px solid #e5e7eb;
-    padding: 10px 0;
-    height: 91px;
-    align-items: center;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    padding: 12px 0;
+    flex-shrink: 0;
 }
 
 .bottom-menu {
@@ -141,17 +139,20 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 8px 12px;
+    padding: 12px 8px;
     text-decoration: none;
     color: #6b7280;
-    font-size: 12px;
-    transition: color 0.2s;
+    font-size: 11px;
+    font-weight: 500;
+    transition: all 0.2s ease;
     flex: 1;
 }
 
-.menu-item .icon {
-    font-size: 20px;
+.menu-icon {
+    width: 24px;
+    height: 24px;
     margin-bottom: 4px;
+    filter: grayscale(1);
 }
 
 .menu-item:hover,
